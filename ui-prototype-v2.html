@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ro-Yan Brews — Glass UI</title>
+<style>
+/* ============================================================
+   THEME TOKENS — everything visual is driven from these.
+   Change these (or use the ⚙ panel) to restyle the whole app.
+   ============================================================ */
+:root{
+  --bg1:#0c1f17;          /* background gradient start */
+  --bg2:#123a2a;          /* background gradient end   */
+  --accent:#e8b93e;       /* primary accent (buttons, highlights) */
+  --accent2:#4ade80;      /* secondary accent (prices, success)   */
+  --text:#f4f1e8;         /* main text */
+  --muted:rgba(244,241,232,.55);
+  --glass:rgba(255,255,255,.07);
+  --glass-strong:rgba(255,255,255,.12);
+  --stroke:rgba(255,255,255,.14);
+  --danger:#f87171;
+  --radius:18px;
+  --blur:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  color:var(--text);max-width:520px;margin:0 auto;min-height:100vh;font-size:17px;
+  background:linear-gradient(160deg,var(--bg1),var(--bg2)) fixed;
+  overflow-x:hidden;
+}
+
+/* ---------- floating background orbs ---------- */
+.orb{position:fixed;border-radius:50%;filter:blur(70px);opacity:.35;z-index:-1;pointer-events:none}
+.orb1{width:280px;height:280px;background:var(--accent);top:-80px;right:-80px;animation:float1 14s ease-in-out infinite}
+.orb2{width:240px;height:240px;background:var(--accent2);bottom:10%;left:-100px;animation:float2 18s ease-in-out infinite}
+@keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,60px)}}
+@keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-50px)}}
+
+/* ---------- glass primitives ---------- */
+.glass{
+  background:var(--glass);
+  backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:10px;z-index:80;margin:10px 14px 0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+}
+.logo{font-weight:900;font-size:1.15rem;letter-spacing:1px}
+.logo span{color:var(--accent)}
+.hbtns{display:flex;gap:8px}
+.icon-btn{
+  background:var(--glass-strong);border:1px solid var(--stroke);color:var(--text);
+  border-radius:12px;padding:8px 12px;font-size:.85rem;font-weight:700;cursor:pointer;
+  backdrop-filter:blur(var(--blur));transition:transform .15s;
+}
+.icon-btn:active{transform:scale(.93)}
+
+/* ---------- hero ---------- */
+.hero{margin:22px 14px 8px;padding:34px 22px;text-align:center;position:relative;overflow:hidden}
+.hero h1{font-size:2rem;font-weight:900;line-height:1.15}
+.hero h1 em{color:var(--accent);font-style:normal}
+.hero p{color:var(--muted);margin:10px 0 18px;font-size:.95rem}
+.cta{
+  display:inline-block;background:var(--accent);color:#0f1f16;border:none;border-radius:14px;
+  padding:14px 30px;font-weight:900;font-size:1rem;cursor:pointer;text-decoration:none;
+  box-shadow:0 6px 24px color-mix(in srgb,var(--accent) 45%,transparent);
+  transition:transform .15s;
+}
+.cta:active{transform:scale(.95)}
+.hero .shine{position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.12),transparent);
+  animation:shine 4.5s ease-in-out infinite}
+@keyframes shine{0%,60%{left:-60%}100%{left:130%}}
+
+/* ---------- category chips ---------- */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 14px;position:sticky;top:0;z-index:70;scrollbar-width:none;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--bg1) 88%,transparent),transparent)}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;background:var(--glass);border:1px solid var(--stroke);color:var(--text);
+  backdrop-filter:blur(var(--blur));border-radius:22px;padding:10px 18px;
+  font-size:.95rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;
+}
+.chip.active{background:var(--accent);color:#0f1f16;border-color:transparent;transform:translateY(-2px)}
+
+/* ---------- menu ---------- */
+main{padding:0 14px 130px}
+.cat-title{
+  font-size:1.2rem;font-weight:900;margin:26px 4px 12px;display:flex;align-items:center;gap:10px;
+  scroll-margin-top:70px;
+}
+.cat-title .ico{font-size:1.4rem}
+.cat-title::after{content:"";flex:1;height:1px;background:linear-gradient(to right,var(--stroke),transparent)}
+.card{
+  padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  transition:transform .2s;
+}
+.card:active{transform:scale(.985)}
+.card.oos{opacity:.4}
+.item-name{font-weight:800;font-size:1.02rem}
+.item-price{color:var(--accent2);font-weight:800;margin-top:5px}
+.oos-tag{font-size:.72rem;color:var(--danger);font-weight:700}
+.size-row{display:flex;gap:6px;margin-top:10px}
+.size-btn{
+  border:1px solid var(--stroke);background:transparent;color:var(--muted);
+  border-radius:9px;padding:5px 12px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;
+}
+.size-btn.active{background:var(--accent2);border-color:transparent;color:#0f1f16}
+.stepper{display:flex;align-items:center;border:1px solid var(--accent);border-radius:12px;overflow:hidden;flex-shrink:0;background:var(--glass-strong)}
+.stepper button{width:42px;height:44px;border:none;background:transparent;color:var(--accent);font-size:1.4rem;font-weight:800;cursor:pointer}
+.stepper .qty{width:36px;text-align:center;font-weight:800;font-size:1.05rem}
+.add-btn{
+  background:var(--accent);color:#0f1f16;border:none;border-radius:12px;padding:12px 22px;
+  font-weight:900;font-size:.95rem;cursor:pointer;flex-shrink:0;transition:transform .15s;
+  box-shadow:0 4px 18px color-mix(in srgb,var(--accent) 40%,transparent);
+}
+.add-btn:active{transform:scale(.9)}
+
+/* ---------- scroll reveal ---------- */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .6s ease,transform .6s cubic-bezier(.22,1,.36,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- cart bar ---------- */
+.cartbar{
+  position:fixed;bottom:14px;left:50%;transform:translateX(-50%) translateY(140%);
+  width:calc(100% - 28px);max-width:492px;z-index:90;
+  padding:14px 18px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+  background:color-mix(in srgb,var(--bg1) 55%,var(--glass-strong));
+  backdrop-filter:blur(calc(var(--blur) + 6px));border:1px solid var(--stroke);border-radius:var(--radius);
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
+  transition:transform .35s cubic-bezier(.22,1,.36,1);
+}
+.cartbar.show{transform:translateX(-50%) translateY(0)}
+.cartbar b{color:var(--accent)}
+.cartbar .go{background:var(--accent);color:#0f1f16;border-radius:11px;padding:10px 18px;font-weight:900;font-size:.9rem}
+
+/* ---------- screens ---------- */
+.screen{display:none;animation:fadeUp .35s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.back{background:none;border:none;color:var(--accent);font-weight:800;font-size:1rem;cursor:pointer;padding:16px 4px}
+.cart-line{padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.total-row{display:flex;justify-content:space-between;font-size:1.25rem;font-weight:900;padding:18px 6px;color:var(--accent)}
+.big-btn{
+  width:100%;background:var(--accent);color:#0f1f16;border:none;border-radius:var(--radius);
+  padding:18px;font-size:1.1rem;font-weight:900;cursor:pointer;margin-top:10px;transition:transform .15s;
+  box-shadow:0 8px 30px color-mix(in srgb,var(--accent) 35%,transparent);
+}
+.big-btn:active{transform:scale(.97)}
+.field{
+  width:100%;background:var(--glass);border:1px solid var(--stroke);color:var(--text);
+  backdrop-filter:blur(var(--blur));border-radius:var(--radius);padding:17px;
+  font-size:1.25rem;margin:12px 0;text-align:center;letter-spacing:3px;
+}
+.field::placeholder{color:var(--muted);letter-spacing:1px}
+.field:focus{outline:none;border-color:var(--accent)}
+.hint{color:var(--muted);text-align:center;font-size:.88rem;margin-top:8px}
+.center{text-align:center;padding:34px 12px}
+.order-no{font-size:2.2rem;font-weight:900;color:var(--accent);margin:10px 0}
+.eta{background:var(--glass-strong);border:1px solid var(--stroke);display:inline-block;border-radius:22px;padding:9px 22px;font-weight:800;margin:8px 0}
+.eta b{color:var(--accent2)}
+
+/* ---------- tracker ---------- */
+.tracker{display:flex;justify-content:space-between;margin:30px 8px;position:relative}
+.tracker::before{content:"";position:absolute;top:15px;left:10%;right:10%;height:2px;background:var(--stroke)}
+.step{position:relative;z-index:1;text-align:center;flex:1}
+.dot{width:32px;height:32px;border-radius:50%;background:var(--glass-strong);border:1px solid var(--stroke);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 7px;font-weight:800;font-size:.85rem;transition:all .3s}
+.step.done .dot{background:var(--accent2);color:#0f1f16;border-color:transparent}
+.step.now .dot{background:var(--accent);color:#0f1f16;border-color:transparent;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%,transparent);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 30%,transparent)}50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--accent) 12%,transparent)}}
+.step small{font-size:.72rem;font-weight:700;color:var(--muted)}
+.step.done small,.step.now small{color:var(--text)}
+
+/* ---------- admin ---------- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.stat{padding:14px 10px;text-align:center}
+.stat b{display:block;font-size:1.35rem;color:var(--accent)}
+.stat small{color:var(--muted);font-size:.72rem}
+.order-card{padding:16px;margin-bottom:12px;border-left:4px solid var(--accent)}
+.order-card.new{border-left-color:var(--danger);animation:flash 1.2s ease 3}
+@keyframes flash{0%,100%{background:var(--glass)}50%{background:color-mix(in srgb,var(--danger) 18%,var(--glass))}}
+.order-head{display:flex;justify-content:space-between;font-weight:800}
+.order-head span:last-child{color:var(--accent2)}
+.order-items{color:var(--muted);font-size:.9rem;margin:9px 0}
+.status-row{display:flex;gap:7px;flex-wrap:wrap}
+.st-btn{border:1px solid var(--stroke);background:transparent;color:var(--muted);border-radius:9px;padding:8px 13px;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .15s}
+.st-btn.active{background:var(--accent2);color:#0f1f16;border-color:transparent}
+.switch{width:52px;height:28px;background:var(--glass-strong);border:1px solid var(--stroke);border-radius:14px;position:relative;cursor:pointer;flex-shrink:0;transition:.2s}
+.switch.on{background:var(--accent2);border-color:transparent}
+.switch::after{content:"";position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s}
+.switch.on::after{left:27px}
+.sim{background:var(--danger);color:#fff;border:none;border-radius:14px;padding:13px 16px;font-weight:800;width:100%;margin:12px 0;cursor:pointer}
+h2.admin-h{font-size:1.05rem;margin:20px 4px 10px;color:var(--accent)}
+
+/* ---------- theme panel ---------- */
+.theme-panel{
+  position:fixed;top:70px;right:14px;z-index:100;width:270px;padding:18px;
+  transform:translateX(120%);transition:transform .35s cubic-bezier(.22,1,.36,1);
+  background:color-mix(in srgb,var(--bg1) 70%,var(--glass-strong));
+  backdrop-filter:blur(24px);border:1px solid var(--stroke);border-radius:var(--radius);
+}
+.theme-panel.open{transform:none}
+.theme-panel h3{font-size:.95rem;margin-bottom:12px}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.swatch{height:44px;border-radius:12px;cursor:pointer;border:2px solid transparent;transition:transform .15s}
+.swatch:active{transform:scale(.9)}
+.swatch.sel{border-color:#fff}
+.tp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:.85rem;color:var(--muted)}
+.tp-row input[type=color]{width:44px;height:30px;border:none;background:none;cursor:pointer}
+.tp-row input[type=range]{width:130px;accent-color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<header class="glass">
+  <div class="logo">RO-YAN <span>BREWS</span></div>
+  <div class="hbtns">
+    <button class="icon-btn" onclick="themePanel.classList.toggle('open')">&#9881;</button>
+    <button class="icon-btn" id="modeBtn" onclick="toggleMode()">Admin</button>
+  </div>
+</header>
+
+<!-- ============ THEME PANEL ============ -->
+<div class="theme-panel" id="themePanel">
+  <h3>&#127912; Theme presets</h3>
+  <div class="swatches" id="swatches"></div>
+  <h3>Fine-tune</h3>
+  <div class="tp-row"><span>Accent</span><input type="color" id="cAccent" onchange="setVar('--accent',this.value)"></div>
+  <div class="tp-row"><span>Secondary</span><input type="color" id="cAccent2" onchange="setVar('--accent2',this.value)"></div>
+  <div class="tp-row"><span>BG top</span><input type="color" id="cBg1" onchange="setVar('--bg1',this.value)"></div>
+  <div class="tp-row"><span>BG bottom</span><input type="color" id="cBg2" onchange="setVar('--bg2',this.value)"></div>
+  <div class="tp-row"><span>Glass blur</span><input type="range" min="4" max="30" value="18" oninput="setVar('--blur',this.value+'px')"></div>
+</div>
+
+<!-- ============ CUSTOMER ============ -->
+<div id="customer">
+
+  <div class="screen active" id="scr-menu">
+    <section class="hero glass reveal">
+      <div class="shine"></div>
+      <h1>Fresh &amp; Fast,<br><em>Made for You</em></h1>
+      <p>Shakes &middot; Burgers &middot; Sandwiches &middot; Momos &middot; Fries</p>
+      <a class="cta" href="#cat-Shakes">Order Now &darr;</a>
+    </section>
+    <div class="chips" id="chips"></div>
+    <main id="menu"></main>
+  </div>
+
+  <div class="screen" id="scr-cart">
+    <main>
+      <button class="back" onclick="show('scr-menu')">&larr; Back to menu</button>
+      <h2 style="margin:0 4px 14px">Your order</h2>
+      <div id="cartLines"></div>
+      <div class="total-row"><span>Total</span><span id="cartTotal2"></span></div>
+      <p class="hint">&#128181; Pay cash when you collect your order</p>
+      <button class="big-btn" onclick="show('scr-phone')">Continue</button>
+    </main>
+  </div>
+
+  <div class="screen" id="scr-phone">
+    <main>
+      <button class="back" onclick="show('scr-cart')">&larr; Back</button>
+      <div class="center">
+        <h2>Your mobile number</h2>
+        <p class="hint">We use it only to give you your order</p>
+        <input class="field" id="phone" type="tel" maxlength="10" placeholder="10-digit number" inputmode="numeric">
+        <button class="big-btn" onclick="sendOtp()">Send OTP</button>
+      </div>
+    </main>
+  </div>
+
+  <div class="screen" id="scr-otp">
+    <main>
+      <button class="back" onclick="show('scr-phone')">&larr; Back</button>
+      <div class="center">
+        <h2>Enter OTP</h2>
+        <p class="hint">Sent to <b id="otpPhone"></b> &nbsp;(demo: any 4 digits)</p>
+        <input class="field" id="otp" type="tel" maxlength="4" placeholder="&bull;&bull;&bull;&bull;" inputmode="numeric">
+        <button class="big-btn" onclick="placeOrder()">Place order</button>
+      </div>
+    </main>
+  </div>
+
+  <div class="screen" id="scr-done">
+    <main>
+      <div class="center">
+        <div style="font-size:3.2rem">&#9989;</div>
+        <h2>Order placed!</h2>
+        <div class="order-no" id="orderNo">#000</div>
+        <div class="eta">Ready in about <b>15 min</b></div>
+        <div class="tracker" id="tracker">
+          <div class="step now"><div class="dot">1</div><small>Placed</small></div>
+          <div class="step"><div class="dot">2</div><small>Preparing</small></div>
+          <div class="step"><div class="dot">3</div><small>Ready</small></div>
+          <div class="step"><div class="dot">4</div><small>Done</small></div>
+        </div>
+        <p class="hint">Show this number at the counter and pay cash</p>
+        <button class="big-btn" onclick="resetAll()">Order again</button>
+      </div>
+    </main>
+  </div>
+
+  <div class="cartbar" id="cartbar" onclick="openCart()">
+    <div><b id="cartCount">0 items</b> &middot; <span id="cartTotal">₹0</span></div>
+    <div class="go">View cart &rarr;</div>
+  </div>
+</div>
+
+<!-- ============ ADMIN ============ -->
+<div id="admin" style="display:none">
+  <main>
+    <div class="stats">
+      <div class="stat glass"><b>7</b><small>Orders today</small></div>
+      <div class="stat glass"><b>₹1,240</b><small>Revenue</small></div>
+      <div class="stat glass"><b>Momos</b><small>Top item</small></div>
+    </div>
+    <button class="sim" onclick="simulateOrder()">&#128276; Simulate new order</button>
+    <h2 class="admin-h">Order queue</h2>
+    <div id="queue"></div>
+    <h2 class="admin-h">Menu stock</h2>
+    <div id="stock"></div>
+  </main>
+</div>
+
+<script>
+/* ================= THEME ================= */
+const PRESETS=[
+ {name:"Emerald Gold",bg1:"#0c1f17",bg2:"#123a2a",accent:"#e8b93e",accent2:"#4ade80"},
+ {name:"Midnight Amber",bg1:"#0f1016",bg2:"#241a10",accent:"#f59e0b",accent2:"#fbbf24"},
+ {name:"Berry",bg1:"#170c1f",bg2:"#2a123a",accent:"#e879f9",accent2:"#a78bfa"},
+ {name:"Ocean",bg1:"#0a1420",bg2:"#0f2a3a",accent:"#38bdf8",accent2:"#34d399"},
+ {name:"Crimson",bg1:"#1a0d0d",bg2:"#331414",accent:"#f87171",accent2:"#fbbf24"},
+ {name:"Slate",bg1:"#101418",bg2:"#1c242c",accent:"#94a3b8",accent2:"#e2e8f0"},
+ {name:"Sunset",bg1:"#1c1030",bg2:"#3a1225",accent:"#fb923c",accent2:"#f472b6"},
+ {name:"Forest Cream",bg1:"#14231a",bg2:"#25402e",accent:"#fde68a",accent2:"#86efac"}
+];
+function setVar(v,val){document.documentElement.style.setProperty(v,val)}
+function applyPreset(p,el){
+ setVar('--bg1',p.bg1);setVar('--bg2',p.bg2);setVar('--accent',p.accent);setVar('--accent2',p.accent2);
+ cAccent.value=p.accent;cAccent2.value=p.accent2;cBg1.value=p.bg1;cBg2.value=p.bg2;
+ document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
+ if(el)el.classList.add('sel');
+}
+swatches.innerHTML=PRESETS.map((p,i)=>
+ `<div class="swatch ${i==0?'sel':''}" title="${p.name}"
+   style="background:linear-gradient(135deg,${p.bg2} 40%,${p.accent})"
+   onclick="applyPreset(PRESETS[${i}],this)"></div>`).join("");
+applyPreset(PRESETS[0],document.querySelector('.swatch'));
+
+/* ================= DATA ================= */
+const ICONS={Shakes:"🥤",Burgers:"🍔",Sandwiches:"🥪",Momos:"🥟",Fries:"🍟"};
+const MENU=[
+ {cat:"Shakes",items:[
+  {id:1,name:"Oreo Shake",full:80},{id:2,name:"KitKat Shake",full:90},
+  {id:3,name:"Cold Coffee",full:70},{id:4,name:"Mango Shake",full:70}]},
+ {cat:"Burgers",items:[
+  {id:5,name:"Aloo Tikki Burger",full:50},{id:6,name:"Veg Cheese Burger",full:70},
+  {id:7,name:"Paneer Burger",full:90}]},
+ {cat:"Sandwiches",items:[
+  {id:8,name:"Veg Grilled Sandwich",full:60},{id:9,name:"Cheese Sandwich",full:80},
+  {id:10,name:"Paneer Sandwich",full:90}]},
+ {cat:"Momos",items:[
+  {id:11,name:"Steam Momos",half:50,full:90},{id:12,name:"Fried Momos",half:60,full:110},
+  {id:13,name:"Paneer Momos",half:70,full:130}]},
+ {cat:"Fries",items:[
+  {id:14,name:"Classic Fries",half:40,full:70},{id:15,name:"Peri Peri Fries",half:50,full:90},
+  {id:16,name:"Cheese Fries",half:60,full:100}]}
+];
+const stock={};MENU.forEach(c=>c.items.forEach(i=>stock[i.id]=true));
+const size={};MENU.forEach(c=>c.items.forEach(i=>{if(i.half)size[i.id]="half"}));
+const cart={};
+let orders=[
+ {no:104,phone:"98xxxx1123",items:"Fried Momos (Full) ×1, Oreo Shake ×2",total:270,status:1},
+ {no:103,phone:"77xxxx0091",items:"Aloo Tikki Burger ×2, Classic Fries (Half) ×1",total:140,status:2}
+];
+let nextNo=105;
+
+/* ================= SCROLL REVEAL ================= */
+let io;
+function observeReveals(){
+ if(io)io.disconnect();
+ io=new IntersectionObserver(es=>es.forEach(e=>{
+   if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}
+ }),{threshold:.08});
+ document.querySelectorAll('.reveal:not(.in)').forEach(el=>io.observe(el));
+}
+
+/* ================= CUSTOMER ================= */
+function renderChips(){
+ chips.innerHTML=MENU.map((c,i)=>`<button class="chip ${i==0?'active':''}" onclick="jump('${c.cat}',this)">${ICONS[c.cat]} ${c.cat}</button>`).join("");
+}
+function jump(cat,btn){
+ document.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
+ btn.classList.add('active');
+ document.getElementById('cat-'+cat).scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderMenu(){
+ menu.innerHTML=MENU.map(c=>`
+  <div class="cat-title reveal" id="cat-${c.cat}"><span class="ico">${ICONS[c.cat]}</span>${c.cat}</div>
+  ${c.items.map(i=>{
+    const s=size[i.id],price=s==="half"?i.half:i.full;
+    const key=i.id+"_"+(s||"full"),inCart=cart[key]?cart[key].qty:0;
+    return `<div class="card glass reveal ${stock[i.id]?'':'oos'}">
+      <div>
+        <div class="item-name">${i.name}</div>
+        <div class="item-price">₹${price}${stock[i.id]?'':' <span class="oos-tag">&nbsp;Out of stock</span>'}</div>
+        ${i.half?`<div class="size-row">
+          <button class="size-btn ${s==='half'?'active':''}" onclick="setSize(${i.id},'half')">Half ₹${i.half}</button>
+          <button class="size-btn ${s==='full'?'active':''}" onclick="setSize(${i.id},'full')">Full ₹${i.full}</button>
+        </div>`:''}
+      </div>
+      ${!stock[i.id]?'':inCart?`
+      <div class="stepper">
+        <button onclick="chg(${i.id},-1)">−</button><div class="qty">${inCart}</div><button onclick="chg(${i.id},1)">+</button>
+      </div>`:`<button class="add-btn" onclick="chg(${i.id},1)">ADD</button>`}
+    </div>`}).join("")}`).join("");
+ renderCartbar();observeReveals();
+}
+function setSize(id,s){size[id]=s;keepReveals();renderMenu()}
+/* keep already-revealed cards visible when re-rendering (no flicker) */
+function keepReveals(){document.querySelectorAll('#menu .reveal').forEach(el=>el.classList.add('in'))}
+function findItem(id){for(const c of MENU){const f=c.items.find(i=>i.id===id);if(f)return f}}
+function chg(id,d){
+ const s=size[id]||"full",key=id+"_"+s,it=findItem(id);
+ if(!cart[key])cart[key]={item:it,size:s,qty:0};
+ cart[key].qty+=d;
+ if(cart[key].qty<=0)delete cart[key];
+ const scrollY=window.scrollY;
+ renderMenu();
+ document.querySelectorAll('#menu .reveal').forEach(el=>el.classList.add('in'));
+ window.scrollTo(0,scrollY);
+}
+function cartTotals(){
+ let n=0,t=0;
+ Object.values(cart).forEach(l=>{n+=l.qty;t+=l.qty*(l.size==="half"?l.item.half:l.item.full)});
+ return{n,t};
+}
+function renderCartbar(){
+ const{n,t}=cartTotals();
+ cartbar.classList.toggle('show',n>0&&document.getElementById('scr-menu').classList.contains('active'));
+ cartCount.textContent=n+(n==1?" item":" items");
+ cartTotal.textContent="₹"+t;
+}
+function openCart(){
+ const{t}=cartTotals();
+ cartLines.innerHTML=Object.values(cart).map(l=>`
+  <div class="cart-line glass">
+    <div><b>${l.item.name}</b>${l.item.half?` <small style="color:var(--muted)">(${l.size==="half"?"Half":"Full"})</small>`:""}<br>
+    <small style="color:var(--muted)">₹${l.size==="half"?l.item.half:l.item.full} × ${l.qty}</small></div>
+    <b style="color:var(--accent2)">₹${l.qty*(l.size==="half"?l.item.half:l.item.full)}</b>
+  </div>`).join("");
+ cartTotal2.textContent="₹"+t;
+ show('scr-cart');
+}
+function show(id){
+ document.querySelectorAll('#customer .screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ renderCartbar();
+ window.scrollTo(0,0);
+}
+function sendOtp(){
+ if(phone.value.length<10){alert("Please enter a 10-digit mobile number");return}
+ otpPhone.textContent=phone.value;show('scr-otp');
+}
+function placeOrder(){
+ if(otp.value.length<4){alert("Please enter the 4-digit OTP");return}
+ const{t}=cartTotals();
+ const items=Object.values(cart).map(l=>`${l.item.name}${l.item.half?` (${l.size==="half"?"Half":"Full"})`:""} ×${l.qty}`).join(", ");
+ orders.unshift({no:nextNo,phone:phone.value.slice(0,2)+"xxxx"+phone.value.slice(-4),items,total:t,status:0,fresh:true});
+ orderNo.textContent="#"+nextNo;nextNo++;
+ Object.keys(cart).forEach(k=>delete cart[k]);
+ show('scr-done');renderQueue();
+ // reset + auto-advance tracker (demo)
+ const steps=tracker.children;
+ [...steps].forEach((s,i)=>s.className="step"+(i==0?" now":""));
+ steps[0].querySelector('.dot').textContent="1";
+ let st=0;
+ const iv=setInterval(()=>{st++;
+   if(st>3){clearInterval(iv);return}
+   steps[st-1].className="step done";steps[st].className="step now";
+ },4000);
+}
+function resetAll(){otp.value="";phone.value="";renderMenu();show('scr-menu')}
+
+/* ================= ADMIN ================= */
+const STATUS=["Placed","Preparing","Ready","Completed"];
+function renderQueue(){
+ queue.innerHTML=orders.map((o,idx)=>`
+  <div class="order-card glass ${o.fresh?'new':''}">
+    <div class="order-head"><span>#${o.no} &middot; ${o.phone}</span><span>₹${o.total}</span></div>
+    <div class="order-items">${o.items}</div>
+    <div class="status-row">
+      ${STATUS.map((s,i)=>`<button class="st-btn ${o.status===i?'active':''}" onclick="setStatus(${idx},${i})">${s}</button>`).join("")}
+    </div>
+  </div>`).join("");
+}
+function setStatus(idx,st){orders[idx].status=st;orders[idx].fresh=false;renderQueue()}
+function renderStock(){
+ document.getElementById('stock').innerHTML=MENU.map(c=>c.items.map(i=>`
+  <div class="cart-line glass">
+    <div><b>${i.name}</b><br><small style="color:var(--muted)">${ICONS[c.cat]} ${c.cat}</small></div>
+    <div class="switch ${stock[i.id]?'on':''}" onclick="toggleStock(${i.id})"></div>
+  </div>`).join("")).join("");
+}
+function toggleStock(id){stock[id]=!stock[id];renderStock();keepReveals();renderMenu()}
+function simulateOrder(){
+ orders.unshift({no:nextNo,phone:"91xxxx4477",items:"Paneer Momos (Full) ×1, Cold Coffee ×1",total:200,status:0,fresh:true});
+ nextNo++;renderQueue();
+ const ctx=new (window.AudioContext||window.webkitAudioContext)();
+ const o=ctx.createOscillator(),g=ctx.createGain();
+ o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.value=.15;
+ o.start();setTimeout(()=>o.stop(),350);
+}
+
+/* ================= MODE ================= */
+let adminMode=false;
+function toggleMode(){
+ adminMode=!adminMode;
+ document.getElementById('customer').style.display=adminMode?"none":"block";
+ document.getElementById('admin').style.display=adminMode?"block":"none";
+ modeBtn.textContent=adminMode?"Customer":"Admin";
+ themePanel.classList.remove('open');
+ if(adminMode){renderQueue();renderStock()}
+ else{keepReveals();renderMenu()}
+}
+
+/* close theme panel when tapping outside */
+document.addEventListener('click',e=>{
+ if(!themePanel.contains(e.target)&&!e.target.closest('.icon-btn'))themePanel.classList.remove('open');
+});
+
+renderChips();renderMenu();observeReveals();
+</script>
+</body>
+</html>

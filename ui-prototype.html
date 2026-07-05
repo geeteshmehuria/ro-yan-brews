@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ro-Yan Brews — Order</title>
+<style>
+  :root{
+    --green:#123d2a; --green2:#1b5a3e; --gold:#e0a52e; --gold2:#f3c95c;
+    --cream:#faf6ee; --ink:#1c1c1c; --muted:#6b7b72; --red:#c0392b;
+    --radius:14px; --shadow:0 2px 10px rgba(0,0,0,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+  body{background:var(--cream);color:var(--ink);max-width:520px;margin:0 auto;min-height:100vh;font-size:17px}
+
+  /* header */
+  header{background:var(--green);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+  .logo{font-size:1.25rem;font-weight:800;letter-spacing:.5px}
+  .logo span{color:var(--gold)}
+  .mode-toggle{background:var(--green2);border:1px solid var(--gold);color:var(--gold2);border-radius:20px;padding:6px 14px;font-size:.85rem;font-weight:700;cursor:pointer}
+
+  /* category chips */
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;background:var(--cream);position:sticky;top:56px;z-index:40;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;background:#fff;border:2px solid #ddd;border-radius:22px;padding:9px 18px;font-size:1rem;font-weight:700;cursor:pointer;white-space:nowrap}
+  .chip.active{background:var(--green);color:var(--gold2);border-color:var(--green)}
+
+  /* menu */
+  main{padding:0 16px 120px}
+  .cat-title{font-size:1.15rem;font-weight:800;color:var(--green);margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+  .cat-title::after{content:"";flex:1;height:2px;background:linear-gradient(to right,var(--gold),transparent)}
+  .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .card.oos{opacity:.45}
+  .item-name{font-weight:700;font-size:1.05rem}
+  .item-price{color:var(--green2);font-weight:800;margin-top:4px}
+  .oos-tag{font-size:.75rem;color:var(--red);font-weight:700}
+  .size-row{display:flex;gap:6px;margin-top:8px}
+  .size-btn{border:2px solid var(--green2);background:#fff;color:var(--green2);border-radius:8px;padding:4px 12px;font-size:.85rem;font-weight:700;cursor:pointer}
+  .size-btn.active{background:var(--green2);color:#fff}
+  .stepper{display:flex;align-items:center;gap:0;border:2px solid var(--green);border-radius:10px;overflow:hidden;flex-shrink:0}
+  .stepper button{width:44px;height:44px;border:none;background:var(--green);color:var(--gold2);font-size:1.4rem;font-weight:800;cursor:pointer}
+  .stepper .qty{width:40px;text-align:center;font-weight:800;font-size:1.1rem}
+  .add-btn{background:var(--gold);color:var(--green);border:none;border-radius:10px;padding:12px 20px;font-weight:800;font-size:1rem;cursor:pointer;flex-shrink:0}
+
+  /* cart bar */
+  .cartbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:var(--green);color:#fff;padding:14px 18px;display:none;justify-content:space-between;align-items:center;cursor:pointer;z-index:60;border-radius:16px 16px 0 0;box-shadow:0 -4px 14px rgba(0,0,0,.25)}
+  .cartbar b{color:var(--gold2)}
+  .cartbar .go{background:var(--gold);color:var(--green);border-radius:10px;padding:10px 18px;font-weight:800}
+
+  /* screens */
+  .screen{display:none}
+  .screen.active{display:block}
+  .back{background:none;border:none;color:var(--green);font-weight:800;font-size:1rem;cursor:pointer;padding:14px 0}
+  .cart-line{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .total-row{display:flex;justify-content:space-between;font-size:1.2rem;font-weight:800;padding:16px 4px;color:var(--green)}
+  .big-btn{width:100%;background:var(--green);color:var(--gold2);border:none;border-radius:var(--radius);padding:18px;font-size:1.15rem;font-weight:800;cursor:pointer;margin-top:8px}
+  .big-btn:disabled{opacity:.5}
+  .field{width:100%;border:2px solid #ccc;border-radius:var(--radius);padding:16px;font-size:1.2rem;margin:10px 0;text-align:center;letter-spacing:2px}
+  .field:focus{outline:none;border-color:var(--green)}
+  .hint{color:var(--muted);text-align:center;font-size:.9rem;margin-top:6px}
+  .center{text-align:center;padding:30px 10px}
+  .order-no{font-size:2rem;font-weight:900;color:var(--green);margin:10px 0}
+  .eta{background:var(--gold2);display:inline-block;border-radius:20px;padding:8px 20px;font-weight:800;color:var(--green);margin:8px 0}
+
+  /* status tracker */
+  .tracker{display:flex;justify-content:space-between;margin:26px 8px;position:relative}
+  .tracker::before{content:"";position:absolute;top:14px;left:10%;right:10%;height:3px;background:#ddd}
+  .step{position:relative;z-index:1;text-align:center;flex:1}
+  .dot{width:30px;height:30px;border-radius:50%;background:#ddd;color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-weight:800}
+  .step.done .dot{background:var(--green)}
+  .step.now .dot{background:var(--gold);color:var(--green);box-shadow:0 0 0 5px rgba(224,165,46,.3)}
+  .step small{font-size:.75rem;font-weight:700;color:var(--muted)}
+  .step.done small,.step.now small{color:var(--green)}
+
+  /* admin */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .stat{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;text-align:center}
+  .stat b{display:block;font-size:1.3rem;color:var(--green)}
+  .stat small{color:var(--muted);font-size:.75rem}
+  .order-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:12px;border-left:6px solid var(--gold)}
+  .order-card.new{border-left-color:var(--red);animation:flash 1s ease 3}
+  @keyframes flash{0%,100%{background:#fff}50%{background:#fdecd0}}
+  .order-head{display:flex;justify-content:space-between;font-weight:800;color:var(--green)}
+  .order-items{color:var(--muted);font-size:.92rem;margin:8px 0}
+  .status-row{display:flex;gap:8px;flex-wrap:wrap}
+  .st-btn{border:2px solid var(--green2);background:#fff;color:var(--green2);border-radius:8px;padding:8px 14px;font-weight:700;font-size:.85rem;cursor:pointer}
+  .st-btn.active{background:var(--green2);color:#fff}
+  .switch{width:52px;height:28px;background:#ccc;border-radius:14px;position:relative;cursor:pointer;flex-shrink:0;transition:.2s}
+  .switch.on{background:var(--green2)}
+  .switch::after{content:"";position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;top:3px;left:3px;transition:.2s}
+  .switch.on::after{left:27px}
+  .sim{background:var(--red);color:#fff;border:none;border-radius:10px;padding:12px 16px;font-weight:800;width:100%;margin:12px 0;cursor:pointer}
+  h2.admin-h{color:var(--green);font-size:1.05rem;margin:18px 0 8px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">RO-YAN <span>BREWS</span></div>
+  <button class="mode-toggle" id="modeBtn" onclick="toggleMode()">Admin view</button>
+</header>
+
+<!-- ============ CUSTOMER ============ -->
+<div id="customer">
+
+  <!-- MENU SCREEN -->
+  <div class="screen active" id="scr-menu">
+    <div class="chips" id="chips"></div>
+    <main id="menu"></main>
+  </div>
+
+  <!-- CART SCREEN -->
+  <div class="screen" id="scr-cart">
+    <main>
+      <button class="back" onclick="show('scr-menu')">&larr; Back to menu</button>
+      <h2 style="color:var(--green);margin-bottom:12px">Your order</h2>
+      <div id="cartLines"></div>
+      <div class="total-row"><span>Total</span><span id="cartTotal2"></span></div>
+      <p class="hint">Pay cash when you collect your order</p>
+      <button class="big-btn" onclick="show('scr-phone')">Continue</button>
+    </main>
+  </div>
+
+  <!-- PHONE SCREEN -->
+  <div class="screen" id="scr-phone">
+    <main>
+      <button class="back" onclick="show('scr-cart')">&larr; Back</button>
+      <div class="center">
+        <h2 style="color:var(--green)">Your mobile number</h2>
+        <p class="hint">We use it only to give you your order</p>
+        <input class="field" id="phone" type="tel" maxlength="10" placeholder="10-digit number" inputmode="numeric">
+        <button class="big-btn" onclick="sendOtp()">Send OTP</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- OTP SCREEN -->
+  <div class="screen" id="scr-otp">
+    <main>
+      <button class="back" onclick="show('scr-phone')">&larr; Back</button>
+      <div class="center">
+        <h2 style="color:var(--green)">Enter OTP</h2>
+        <p class="hint">Sent to <b id="otpPhone"></b> &nbsp;(demo: any 4 digits)</p>
+        <input class="field" id="otp" type="tel" maxlength="4" placeholder="&bull;&bull;&bull;&bull;" inputmode="numeric">
+        <button class="big-btn" onclick="placeOrder()">Place order</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- CONFIRMATION SCREEN -->
+  <div class="screen" id="scr-done">
+    <main>
+      <div class="center">
+        <div style="font-size:3rem">&#9989;</div>
+        <h2 style="color:var(--green)">Order placed!</h2>
+        <div class="order-no" id="orderNo">#000</div>
+        <div class="eta">Ready in about 15 min</div>
+        <div class="tracker" id="tracker">
+          <div class="step now"><div class="dot">1</div><small>Placed</small></div>
+          <div class="step"><div class="dot">2</div><small>Preparing</small></div>
+          <div class="step"><div class="dot">3</div><small>Ready</small></div>
+          <div class="step"><div class="dot">4</div><small>Done</small></div>
+        </div>
+        <p class="hint">Show this number at the counter and pay cash</p>
+        <button class="big-btn" onclick="resetAll()">Order again</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- CART BAR -->
+  <div class="cartbar" id="cartbar" onclick="openCart()">
+    <div><b id="cartCount">0 items</b> &middot; <span id="cartTotal">₹0</span></div>
+    <div class="go">View cart &rarr;</div>
+  </div>
+</div>
+
+<!-- ============ ADMIN ============ -->
+<div id="admin" style="display:none">
+  <main>
+    <div class="stats">
+      <div class="stat"><b id="stOrders">7</b><small>Orders today</small></div>
+      <div class="stat"><b id="stRev">₹1,240</b><small>Revenue</small></div>
+      <div class="stat"><b>Momos</b><small>Top item</small></div>
+    </div>
+    <button class="sim" onclick="simulateOrder()">&#128276; Simulate new order</button>
+    <h2 class="admin-h">Order queue</h2>
+    <div id="queue"></div>
+    <h2 class="admin-h">Menu stock</h2>
+    <div id="stock"></div>
+  </main>
+</div>
+
+<script>
+/* ---------- data ---------- */
+const MENU=[
+ {cat:"Shakes",items:[
+  {id:1,name:"Oreo Shake",full:80},
+  {id:2,name:"KitKat Shake",full:90},
+  {id:3,name:"Cold Coffee",full:70},
+  {id:4,name:"Mango Shake",full:70}]},
+ {cat:"Burgers",items:[
+  {id:5,name:"Aloo Tikki Burger",full:50},
+  {id:6,name:"Veg Cheese Burger",full:70},
+  {id:7,name:"Paneer Burger",full:90}]},
+ {cat:"Sandwiches",items:[
+  {id:8,name:"Veg Grilled Sandwich",full:60},
+  {id:9,name:"Cheese Sandwich",full:80},
+  {id:10,name:"Paneer Sandwich",full:90}]},
+ {cat:"Momos",items:[
+  {id:11,name:"Steam Momos",half:50,full:90},
+  {id:12,name:"Fried Momos",half:60,full:110},
+  {id:13,name:"Paneer Momos",half:70,full:130}]},
+ {cat:"Fries",items:[
+  {id:14,name:"Classic Fries",half:40,full:70},
+  {id:15,name:"Peri Peri Fries",half:50,full:90},
+  {id:16,name:"Cheese Fries",half:60,full:100}]}
+];
+const stock={}; MENU.forEach(c=>c.items.forEach(i=>stock[i.id]=true));
+const size={};  MENU.forEach(c=>c.items.forEach(i=>{if(i.half)size[i.id]="half"}));
+const cart={};  // key: id_size -> {item,size,qty}
+let orders=[
+ {no:104,phone:"98xxxx1123",items:"Fried Momos (Full) ×1, Oreo Shake ×2",total:270,status:1},
+ {no:103,phone:"77xxxx0091",items:"Aloo Tikki Burger ×2, Classic Fries (Half) ×1",total:140,status:2}
+];
+let nextNo=105;
+
+/* ---------- customer render ---------- */
+function renderChips(){
+ chips.innerHTML=MENU.map((c,i)=>`<button class="chip ${i==0?'active':''}" onclick="jump('${c.cat}',this)">${c.cat}</button>`).join("");
+}
+function jump(cat,btn){
+ document.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
+ btn.classList.add('active');
+ document.getElementById('cat-'+cat).scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderMenu(){
+ menu.innerHTML=MENU.map(c=>`
+  <div class="cat-title" id="cat-${c.cat}" style="scroll-margin-top:120px">${c.cat}</div>
+  ${c.items.map(i=>{
+    const s=size[i.id], price=s==="half"?i.half:i.full;
+    const key=i.id+"_"+(s||"full"), inCart=cart[key]?cart[key].qty:0;
+    return `<div class="card ${stock[i.id]?'':'oos'}">
+      <div>
+        <div class="item-name">${i.name}</div>
+        <div class="item-price">₹${price}${stock[i.id]?'':' <span class="oos-tag">&nbsp;Out of stock</span>'}</div>
+        ${i.half?`<div class="size-row">
+          <button class="size-btn ${s==='half'?'active':''}" onclick="setSize(${i.id},'half')">Half ₹${i.half}</button>
+          <button class="size-btn ${s==='full'?'active':''}" onclick="setSize(${i.id},'full')">Full ₹${i.full}</button>
+        </div>`:''}
+      </div>
+      ${!stock[i.id]?'':inCart?`
+      <div class="stepper">
+        <button onclick="chg(${i.id},-1)">−</button><div class="qty">${inCart}</div><button onclick="chg(${i.id},1)">+</button>
+      </div>`:`<button class="add-btn" onclick="chg(${i.id},1)">ADD</button>`}
+    </div>`}).join("")}`).join("");
+ renderCartbar();
+}
+function setSize(id,s){size[id]=s;renderMenu()}
+function findItem(id){for(const c of MENU){const f=c.items.find(i=>i.id===id);if(f)return f}}
+function chg(id,d){
+ const s=size[id]||"full", key=id+"_"+s, it=findItem(id);
+ if(!cart[key])cart[key]={item:it,size:s,qty:0};
+ cart[key].qty+=d;
+ if(cart[key].qty<=0)delete cart[key];
+ renderMenu();
+}
+function cartTotals(){
+ let n=0,t=0;
+ Object.values(cart).forEach(l=>{n+=l.qty;t+=l.qty*(l.size==="half"?l.item.half:l.item.full)});
+ return{n,t};
+}
+function renderCartbar(){
+ const{n,t}=cartTotals();
+ cartbar.style.display=n?"flex":"none";
+ cartCount.textContent=n+(n==1?" item":" items");
+ cartTotal.textContent="₹"+t;
+}
+function openCart(){
+ const{t}=cartTotals();
+ cartLines.innerHTML=Object.values(cart).map(l=>`
+  <div class="cart-line">
+    <div><b>${l.item.name}</b>${l.item.half?` <small>(${l.size==="half"?"Half":"Full"})</small>`:""}<br>
+    <small style="color:var(--muted)">₹${l.size==="half"?l.item.half:l.item.full} × ${l.qty}</small></div>
+    <b style="color:var(--green)">₹${l.qty*(l.size==="half"?l.item.half:l.item.full)}</b>
+  </div>`).join("");
+ cartTotal2.textContent="₹"+t;
+ show('scr-cart');
+}
+function show(id){
+ document.querySelectorAll('#customer .screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ cartbar.style.display=(id==='scr-menu'&&cartTotals().n)?"flex":"none";
+ window.scrollTo(0,0);
+}
+function sendOtp(){
+ if(phone.value.length<10){alert("Please enter a 10-digit mobile number");return}
+ otpPhone.textContent=phone.value;
+ show('scr-otp');
+}
+function placeOrder(){
+ if(otp.value.length<4){alert("Please enter the 4-digit OTP");return}
+ const{t}=cartTotals();
+ const items=Object.values(cart).map(l=>`${l.item.name}${l.item.half?` (${l.size==="half"?"Half":"Full"})`:""} ×${l.qty}`).join(", ");
+ orders.unshift({no:nextNo,phone:phone.value.slice(0,2)+"xxxx"+phone.value.slice(-4),items,total:t,status:0,fresh:true});
+ orderNo.textContent="#"+nextNo; nextNo++;
+ Object.keys(cart).forEach(k=>delete cart[k]);
+ show('scr-done'); renderQueue();
+ // demo: auto-advance the tracker
+ let st=0; const steps=tracker.children;
+ const iv=setInterval(()=>{ st++;
+   if(st>3){clearInterval(iv);return}
+   steps[st-1].className="step done"; steps[st].className="step now";
+ },4000);
+}
+function resetAll(){otp.value="";phone.value="";renderMenu();show('scr-menu')}
+
+/* ---------- admin ---------- */
+const STATUS=["Placed","Preparing","Ready","Completed"];
+function renderQueue(){
+ queue.innerHTML=orders.map((o,idx)=>`
+  <div class="order-card ${o.fresh?'new':''}">
+    <div class="order-head"><span>#${o.no} &middot; ${o.phone}</span><span>₹${o.total}</span></div>
+    <div class="order-items">${o.items}</div>
+    <div class="status-row">
+      ${STATUS.map((s,i)=>`<button class="st-btn ${o.status===i?'active':''}" onclick="setStatus(${idx},${i})">${s}</button>`).join("")}
+    </div>
+  </div>`).join("");
+}
+function setStatus(idx,st){orders[idx].status=st;orders[idx].fresh=false;renderQueue()}
+function renderStock(){
+ stockEl=document.getElementById('stock');
+ stockEl.innerHTML=MENU.map(c=>c.items.map(i=>`
+  <div class="cart-line">
+    <div><b>${i.name}</b><br><small style="color:var(--muted)">${c.cat}</small></div>
+    <div class="switch ${stock[i.id]?'on':''}" onclick="toggleStock(${i.id})"></div>
+  </div>`).join("")).join("");
+}
+function toggleStock(id){stock[id]=!stock[id];renderStock();renderMenu()}
+function simulateOrder(){
+ orders.unshift({no:nextNo,phone:"91xxxx4477",items:"Paneer Momos (Full) ×1, Cold Coffee ×1",total:200,status:0,fresh:true});
+ nextNo++; renderQueue();
+ try{new AudioContext().createOscillator()}catch(e){}
+ const ctx=new (window.AudioContext||window.webkitAudioContext)();
+ const o=ctx.createOscillator(),g=ctx.createGain();
+ o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.value=.15;
+ o.start();setTimeout(()=>o.stop(),350);
+}
+
+/* ---------- mode toggle ---------- */
+let adminMode=false;
+function toggleMode(){
+ adminMode=!adminMode;
+ document.getElementById('customer').style.display=adminMode?"none":"block";
+ document.getElementById('admin').style.display=adminMode?"block":"none";
+ modeBtn.textContent=adminMode?"Customer view":"Admin view";
+ if(adminMode){renderQueue();renderStock()}
+ else renderMenu();
+}
+
+renderChips();renderMenu();
+</script>
+</body>
+</html>

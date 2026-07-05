@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============ Ocean theme tokens — single source of truth ============ */
+:root {
+  --bg1: #0a1420;
+  --bg2: #0f2a3a;
+  --accent: #38bdf8;
+  --accent2: #34d399;
+  --text: #f4f1e8;
+  --muted: rgba(244, 241, 232, 0.55);
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-strong: rgba(255, 255, 255, 0.12);
+  --stroke: rgba(255, 255, 255, 0.14);
+  --danger: #f87171;
+  --radius: 18px;
+  --blur: 18px;
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 17px;
+  background: linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+#root { max-width: 520px; margin: 0 auto; min-height: 100vh; }
+
+/* ============ glass primitives ============ */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+.glass-strong {
+  background: var(--glass-strong);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+}
+
+/* ============ background orbs ============ */
+.orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.35; z-index: -1; pointer-events: none; }
+.orb1 { width: 280px; height: 280px; background: var(--accent); top: -80px; right: -80px; animation: float1 14s ease-in-out infinite; }
+.orb2 { width: 240px; height: 240px; background: var(--accent2); bottom: 10%; left: -100px; animation: float2 18s ease-in-out infinite; }
+@keyframes float1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-40px, 60px); } }
+@keyframes float2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(50px, -50px); } }
+
+/* ============ animations ============ */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.reveal.in { opacity: 1; transform: none; }
+
+.screen-in { animation: fadeUp 0.35s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+.shine { position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  animation: shine 4.5s ease-in-out infinite; pointer-events: none; }
+@keyframes shine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+
+.pulse-dot { animation: pulse 1.6s infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.3); }
+  50% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0.12); }
+}
+
+.flash-new { animation: flash 1.2s ease 3; }
+@keyframes flash { 0%, 100% { background: var(--glass); } 50% { background: rgba(248, 113, 113, 0.18); } }
+
+.cartbar-anim { transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.press { transition: transform 0.15s; }
+.press:active { transform: scale(0.95); }
+
+.skeleton { background: linear-gradient(90deg, var(--glass) 25%, var(--glass-strong) 50%, var(--glass) 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .orb, .shine { animation: none !important; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none; }
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
