@@ -3,6 +3,7 @@ dist/
 __pycache__/
 *.pyc
 *.db
+*.db-journal
 .env
 .env.*
 !.env.example
