@@ -1,7 +1,3 @@
-databases:
-  - name: royan-db
-    plan: free
-
 services:
   - type: web
     name: royan-api
@@ -13,9 +9,7 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: royan-db
-          property: connectionString
+        sync: false # set in dashboard — external Neon Postgres (Render free tier allows only one DB and it's taken)
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_PIN

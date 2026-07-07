@@ -164,6 +164,27 @@ def test_ws_customer_gets_status_update(client):
         assert msg == {"type": "status", "status": "preparing"}
 
 
+def test_order_isolation_between_customers(client):
+    """Customer B must never be able to read customer A's order."""
+    token_a = login(client, "9111111111")
+    order_a = place(client, token_a).json()
+    token_b = login(client, "9222222222")
+    r = client.get(f"/api/orders/{order_a['id']}",
+                   headers={"authorization": f"Bearer {token_b}"})
+    assert r.status_code == 404  # not 403 - don't even confirm the order exists
+    client.cookies.clear()  # drop session cookie -> truly anonymous
+    r = client.get(f"/api/orders/{order_a['id']}")
+    assert r.status_code == 401  # anonymous gets nothing either
+
+
+def test_customer_cannot_use_admin_endpoints(client):
+    token = login(client)
+    oid = place(client, token).json()["id"]
+    r = client.patch(f"/api/admin/orders/{oid}/status", json={"status": "ready"},
+                     headers={"authorization": f"Bearer {token}"})
+    assert r.status_code == 401  # customer JWT is not admin
+
+
 def test_stats_today(client):
     token = login(client)
     place(client, token)
