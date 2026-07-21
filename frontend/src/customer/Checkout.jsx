@@ -27,7 +27,14 @@ function Field(props) {
   );
 }
 
-export function CartScreen({ totals, back, next }) {
+export function CartScreen({ totals, back, placeOrder }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const submit = async () => {
+    setBusy(true); setErr("");
+    try { await placeOrder(); }
+    catch (e) { setErr(e.message); setBusy(false); }
+  };
   return (
     <main className="screen-in px-3 pb-10">
       <Back onClick={back}>← Back to menu</Back>
@@ -47,59 +54,85 @@ export function CartScreen({ totals, back, next }) {
         <span>Total</span><span>₹{totals.total}</span>
       </div>
       <p className="text-center text-sm text-muted">💵 Pay cash when you collect your order</p>
-      <BigButton onClick={next} disabled={!totals.count}>Continue</BigButton>
+      {err && <p className="mt-2 text-center text-sm text-danger">{err}</p>}
+      <BigButton onClick={submit} disabled={!totals.count || busy}>
+        {busy ? "Placing order…" : "Place order"}
+      </BigButton>
     </main>
   );
 }
 
-export function PhoneScreen({ phone, setPhone, back, next }) {
+export function EmailScreen({ email, setEmail, back, next }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const send = async () => {
-    if (!/^\d{10}$/.test(phone)) { setErr("Please enter your 10-digit mobile number"); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setErr("Please enter a valid email address"); return; }
     setBusy(true); setErr("");
-    try { await api("/api/otp/send", { method: "POST", body: { phone } }); next(); }
+    try { await api("/api/otp/send", { method: "POST", body: { email } }); next(); }
     catch (e) { setErr(e.message); }
     finally { setBusy(false); }
   };
   return (
     <main className="screen-in px-3 pb-10">
-      <Back onClick={back} />
+      {back && <Back onClick={back} />}
       <div className="px-3 py-8 text-center">
-        <h2 className="text-xl font-black">Your mobile number</h2>
-        <p className="mt-1 text-sm text-muted">We use it only to give you your order</p>
-        <Field id="phone" type="tel" inputMode="numeric" maxLength={10} placeholder="10-digit number"
-          value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} />
+        <h2 className="text-xl font-black">Your email address</h2>
+        <p className="mt-1 text-sm text-muted">We will email you a login code</p>
+        <Field id="email" type="email" inputMode="email" maxLength={255} placeholder="you@example.com"
+          autoComplete="email" style={{ letterSpacing: "1px" }}
+          value={email} onChange={(e) => setEmail(e.target.value.trim())} />
         {err && <p className="text-sm text-danger">{err}</p>}
-        <BigButton onClick={send} disabled={busy}>{busy ? "Sending…" : "Send OTP"}</BigButton>
+        <BigButton onClick={send} disabled={busy}>{busy ? "Sending…" : "Send code"}</BigButton>
       </div>
     </main>
   );
 }
 
-export function OtpScreen({ phone, back, placeOrder }) {
+export function OtpScreen({ email, back, onSubmit, demo, cta = "Verify" }) {
   const [code, setCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const submit = async () => {
-    if (!/^\d{4}$/.test(code)) { setErr("Please enter the 4-digit OTP"); return; }
+    if (!/^\d{6}$/.test(code)) { setErr("Please enter the 6-digit code from the email"); return; }
     setBusy(true); setErr("");
-    try { await placeOrder(code); }
+    try { await onSubmit(code); }
     catch (e) { setErr(e.message); setBusy(false); }
   };
   return (
     <main className="screen-in px-3 pb-10">
-      <Back onClick={back} />
+      {back && <Back onClick={back} />}
       <div className="px-3 py-8 text-center">
-        <h2 className="text-xl font-black">Enter OTP</h2>
-        <p className="mt-1 text-sm text-muted">Sent to <b className="text-ink">{phone}</b></p>
-        <Field id="otp" type="tel" inputMode="numeric" maxLength={4} placeholder="••••"
+        <h2 className="text-xl font-black">Enter the code</h2>
+        <p className="mt-1 text-sm text-muted">
+          Code emailed to <b className="text-ink">{email}</b>{demo && " (test mode: use 123456)"}
+        </p>
+        <Field id="otp" type="tel" inputMode="numeric" maxLength={6} placeholder="••••••"
           value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
         {err && <p className="text-sm text-danger">{err}</p>}
-        <BigButton onClick={submit} disabled={busy}>{busy ? "Placing order…" : "Place order"}</BigButton>
+        <BigButton onClick={submit} disabled={busy}>{busy ? "Verifying…" : cta}</BigButton>
       </div>
     </main>
   );
+}
+
+// Full email + 6-digit-OTP login. Verifies, stores the session token, then hands
+// the caller { token, is_admin, email }. Used by both the customer and admin apps.
+export function Login({ onDone, cta = "Log in" }) {
+  const [step, setStep] = useState("email"); // email | otp
+  const [email, setEmail] = useState("");
+  const [smtpLive, setSmtpLive] = useState(true);
+  useEffect(() => {
+    api("/api/auth/mode").then((m) => setSmtpLive(!!m.smtp)).catch(() => {});
+  }, []);
+  const verify = async (code) => {
+    const r = await api("/api/otp/verify", { method: "POST", body: { email, code } });
+    localStorage.setItem("session_token", r.token);
+    onDone({ token: r.token, is_admin: r.is_admin, email });
+  };
+  return step === "email"
+    ? <EmailScreen email={email} setEmail={setEmail} next={() => setStep("otp")} />
+    : <OtpScreen email={email} demo={!smtpLive} back={() => setStep("email")}
+        onSubmit={verify} cta={cta} />;
 }
 
 function Tracker({ status }) {

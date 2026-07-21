@@ -12,10 +12,10 @@ services:
         sync: false # set in dashboard — external Neon Postgres (Render free tier allows only one DB and it's taken)
       - key: JWT_SECRET
         generateValue: true
-      - key: ADMIN_PIN
-        value: "4321" # CHANGE THIS in the Render dashboard before going live
+      - key: ADMIN_EMAIL
+        value: "geeteshmaihuria@gmail.com" # owner account — this email logs in to the admin dashboard
       - key: OTP_DEV_MODE
-        value: "true" # switch to false once a real SMS provider is added
+        value: "true" # switch to false once real SMTP email is configured (SMTP_USER/SMTP_PASS)
       - key: ENV
         value: production
       - key: CORS_ORIGINS

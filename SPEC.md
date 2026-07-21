@@ -18,8 +18,8 @@ Secondary user: admin (stall owner) on phone or laptop.
 |---|---|
 | Order type | Pickup only. No delivery, no dine-in QR. |
 | Payment | Cash on pickup. No UPI in v1. |
-| Login | Phone number + OTP only. No passwords, no signup form, no profile page. |
-| Identity | Order history auto-linked to phone number. |
+| Login | Email + OTP code (sent via Gmail SMTP). No passwords, no signup form, no profile page. |
+| Identity | Order history auto-linked to email address. |
 | Stack | React (frontend), Tailwind CSS, Python FastAPI (backend), PostgreSQL (database), WebSockets for admin alerts. |
 | UI | Designed fresh in a later session. Old HTML prototype is discarded. |
 

@@ -1,21 +1,25 @@
+import re
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
-class PhoneIn(BaseModel):
-    phone: str = Field(min_length=10, max_length=10)
 
-    @field_validator("phone")
+class EmailIn(BaseModel):
+    email: str = Field(min_length=6, max_length=255)
+
+    @field_validator("email")
     @classmethod
-    def digits_only(cls, v: str) -> str:
-        if not v.isdigit():
-            raise ValueError("Phone number must be 10 digits")
+    def valid_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not EMAIL_RE.match(v):
+            raise ValueError("Please enter a valid email address")
         return v
 
 
-class OtpVerifyIn(PhoneIn):
-    code: str = Field(min_length=4, max_length=4)
+class OtpVerifyIn(EmailIn):
+    code: str = Field(min_length=6, max_length=6)
 
 
 class OrderItemIn(BaseModel):

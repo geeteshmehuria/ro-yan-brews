@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from . import auth, otp_service
 from .db import Base, engine, get_db, SessionLocal
 from .models import Customer, MenuItem, Order, OrderItem, ORDER_STATUSES
-from .schemas import AvailabilityIn, OrderIn, OtpVerifyIn, PhoneIn, StatusIn
+from .schemas import AvailabilityIn, EmailIn, OrderIn, OtpVerifyIn, StatusIn
 from .seed import seed_menu
 from .ws import manager
 
@@ -36,8 +36,10 @@ def startup() -> None:
         db.close()
 
 
-def mask(phone: str) -> str:
-    return phone[:2] + "xxxx" + phone[-4:]
+def mask(email: str) -> str:
+    """geeteshmaihuria@gmail.com -> ge***@gmail.com"""
+    local, _, domain = email.partition("@")
+    return f"{local[:2]}***@{domain}"
 
 
 def order_payload(o: Order) -> dict:
@@ -46,7 +48,7 @@ def order_payload(o: Order) -> dict:
         "order_number": o.order_number,
         "status": o.status,
         "total": o.total,
-        "phone_masked": mask(o.customer.phone_number),
+        "email_masked": mask(o.customer.email),
         "created_at": o.created_at.isoformat(),
         "items": [
             {
@@ -82,27 +84,33 @@ def get_menu(db: Session = Depends(get_db)) -> list:
     return [{"category": c, "items": grouped[c]} for c in cats]
 
 
+@app.get("/api/auth/mode")
+def auth_mode() -> dict:
+    """True when real SMTP email sending is configured on the server."""
+    return {"smtp": otp_service.SMTP_USER != "" and otp_service.SMTP_PASS != ""}
+
+
 @app.post("/api/otp/send")
-def otp_send(body: PhoneIn, db: Session = Depends(get_db)) -> dict:
-    otp_service.send_otp(db, body.phone)
+def otp_send(body: EmailIn, db: Session = Depends(get_db)) -> dict:
+    otp_service.send_otp(db, body.email)
     return {"sent": True}
 
 
 @app.post("/api/otp/verify")
 def otp_verify(body: OtpVerifyIn, response: Response, db: Session = Depends(get_db)) -> dict:
-    otp_service.verify_otp(db, body.phone, body.code)
-    customer = db.query(Customer).filter_by(phone_number=body.phone).first()
+    otp_service.verify_otp(db, body.email, body.code)
+    customer = db.query(Customer).filter_by(email=body.email).first()
     if customer is None:
-        customer = Customer(phone_number=body.phone)
+        customer = Customer(email=body.email)
         db.add(customer)
         db.commit()
         db.refresh(customer)
-    token = auth.create_session_token(customer.id, body.phone)
+    token = auth.create_session_token(customer.id, body.email)
     response.set_cookie(
         "session", token, max_age=60 * 60 * 24 * 30, httponly=True,
         samesite="none" if auth.IS_PROD else "lax", secure=auth.IS_PROD,
     )
-    return {"verified": True, "token": token}
+    return {"verified": True, "token": token, "is_admin": auth.is_admin_email(body.email)}
 
 
 @app.post("/api/orders", status_code=201)
@@ -210,7 +218,7 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
 
 @app.websocket("/ws/admin")
 async def ws_admin(ws: WebSocket) -> None:
-    if ws.query_params.get("pin") != auth.ADMIN_PIN:
+    if not auth.token_is_admin(ws.query_params.get("token", "")):
         await ws.close(code=4401)
         return
     await manager.connect(ws, manager.admin)

@@ -23,7 +23,7 @@ class MenuItem(Base):
 class Customer(Base):
     __tablename__ = "customers"
     id = Column(Integer, primary_key=True)
-    phone_number = Column(String(15), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
@@ -53,7 +53,7 @@ class OrderItem(Base):
 class OtpCode(Base):
     __tablename__ = "otp_codes"
     id = Column(Integer, primary_key=True)
-    phone_number = Column(String(15), nullable=False, index=True)
+    email = Column(String(255), nullable=False, index=True)
     code = Column(String(6), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     verified = Column(Boolean, default=False, nullable=False)
