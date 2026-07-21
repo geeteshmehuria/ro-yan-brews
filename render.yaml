@@ -15,7 +15,18 @@ services:
       - key: ADMIN_EMAIL
         value: "geeteshmaihuria@gmail.com" # owner account — this email logs in to the admin dashboard
       - key: OTP_DEV_MODE
-        value: "true" # switch to false once real SMTP email is configured (SMTP_USER/SMTP_PASS)
+        value: "false" # real emailed codes only — REQUIRES SMTP_USER/SMTP_PASS set in the dashboard
+      # SMTP_USER / SMTP_PASS are secrets — set them in the Render dashboard, not here:
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_FROM_NAME
+        value: Ro-Yan Brews
+      - key: SMTP_USER
+        sync: false # set in dashboard (your Gmail address)
+      - key: SMTP_PASS
+        sync: false # set in dashboard (Google App Password, 16 chars)
       - key: ENV
         value: production
       - key: CORS_ORIGINS
