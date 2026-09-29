@@ -1,15 +1,22 @@
 import os
+import time
+import traceback
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
+from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import auth, mailer, otp_service
+from . import auth, mailer, otp_service, request_log
 from .clock import today_start
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
 from .models import CANCELLED, Customer, MenuItem, Order, OrderItem, ORDER_STATUSES
@@ -23,6 +30,7 @@ async def lifespan(_: FastAPI):
     auth.check_prod_config()
     Base.metadata.create_all(bind=engine)
     add_missing_columns(engine)
+    request_log.prune()
     # The seed menu is placeholder data: never auto-load it into production.
     if os.getenv("SEED_MENU", "false" if auth.IS_PROD else "true") == "true":
         with SessionLocal() as db:
@@ -39,6 +47,47 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["*"],
 )
+
+# ---------------- failure log (t_log table) ----------------
+
+@app.exception_handler(StarletteHTTPException)
+async def _http_error(request: Request, exc: StarletteHTTPException):
+    request.state.error = request_log.describe(exc)
+    return await http_exception_handler(request, exc)
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error(request: Request, exc: RequestValidationError):
+    # field names + messages only: the submitted values (emails, notes) stay out of the log
+    request.state.error = "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors())
+    return await request_validation_exception_handler(request, exc)
+
+
+@app.middleware("http")
+async def log_failures(request: Request, call_next):
+    """Record every failed request (status >= 400, including rejected CORS preflights)
+    and every unhandled exception in t_log. Successful requests are not logged."""
+    started = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        request.state.error = "".join(traceback.format_exception(exc))[-2000:]  # the end has the actual error
+        response = JSONResponse({"detail": "Internal Server Error"}, status_code=500)
+    if response.status_code >= 400:
+        try:
+            email = auth.current_customer(request).get("email")
+        except HTTPException:
+            email = None
+        forwarded = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        await run_in_threadpool(
+            request_log.record, request.method, request.url.path,
+            status=response.status_code, duration_ms=int((time.perf_counter() - started) * 1000),
+            error=getattr(request.state, "error", None),
+            client_ip=forwarded or (request.client.host if request.client else None),
+            origin=request.headers.get("origin"), user_agent=request.headers.get("user-agent"),
+            user_email=email)
+    return response
+
 
 # Eager-load everything order_payload touches (avoids one query per order/item).
 ORDER_LOAD = (joinedload(Order.customer), selectinload(Order.items).joinedload(OrderItem.menu_item))
@@ -95,8 +144,8 @@ def notify_ready(order_number: int, email: str, name: Optional[str]) -> None:
             f"Hi {name or 'there'},\n\nOrder #{order_number} is ready — please collect it at "
             "the counter and pay cash.\n\n— Ro-Yan Brews",
         )
-    except Exception:
-        pass  # mailer already logged why; a failed courtesy email must not matter
+    except Exception as exc:  # a failed courtesy email must never matter — just leave a trace
+        request_log.record("TASK", "notify_ready", error=request_log.describe(exc))
 
 
 # ---------------- public ----------------

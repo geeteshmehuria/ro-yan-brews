@@ -1,5 +1,5 @@
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer,
-                        String)
+                        String, Text)
 from sqlalchemy.orm import relationship
 
 from .clock import utcnow
@@ -61,3 +61,20 @@ class OtpCode(Base):
     verified = Column(Boolean, default=False, nullable=False)
     attempt_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=utcnow, nullable=False)
+
+
+class TLog(Base):
+    """Failed requests and background-task errors, for debugging in production
+    (read with SQL, e.g. the Neon console). Never stores bodies, query strings or tokens."""
+    __tablename__ = "t_log"
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    method = Column(String(10), nullable=False)      # HTTP verb, or "TASK" for background jobs
+    path = Column(String(200), nullable=False)       # path only (no query string)
+    status = Column(Integer, nullable=True)
+    duration_ms = Column(Integer, nullable=True)
+    error = Column(Text, nullable=True)              # message, plus the underlying cause / traceback
+    client_ip = Column(String(64), nullable=True)
+    origin = Column(String(200), nullable=True)      # Origin header (CORS problems)
+    user_agent = Column(String(200), nullable=True)
+    user_email = Column(String(255), nullable=True)  # from the bearer token, if any

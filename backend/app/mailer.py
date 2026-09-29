@@ -43,9 +43,9 @@ def send_mail(to: str, subject: str, body: str) -> None:
                 s.starttls()
                 s.login(SMTP_USER, SMTP_PASS)
                 s.sendmail(MAIL_FROM, [to], msg.as_string())
-    except smtplib.SMTPAuthenticationError:
+    except smtplib.SMTPAuthenticationError as e:
         log.error("SMTP login rejected — check SMTP_USER / SMTP_PASS (Gmail App Password or Brevo SMTP key)")
-        raise HTTPException(503, "Email service is misconfigured — try again later")
-    except Exception as e:
+        raise HTTPException(503, "Email service is misconfigured — try again later") from e
+    except Exception as e:  # `from e` keeps the real reason for t_log
         log.error("SMTP send failed: %s (is MAIL_FROM a verified sender, and is the port allowed by the host?)", e)
-        raise HTTPException(503, "Could not send the email — try again in a minute")
+        raise HTTPException(503, "Could not send the email — try again in a minute") from e
