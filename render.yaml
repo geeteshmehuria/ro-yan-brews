@@ -26,8 +26,12 @@ services:
         value: "465"
       - key: SMTP_FROM_NAME
         value: Ro-Yan Brews
+      - key: BREVO_API_KEY
+        sync: false # set in dashboard — Brevo HTTPS email API (Render's free tier blocks SMTP)
+      - key: MAIL_FROM
+        value: "geeteshmaihuria@gmail.com" # must be a sender verified in Brevo
       - key: SMTP_USER
-        sync: false # set in dashboard (your Gmail address)
+        sync: false # only works on a paid Render instance (free tier blocks SMTP)
       - key: SMTP_PASS
         sync: false # set in dashboard (Google App Password, 16 chars)
       - key: ENV

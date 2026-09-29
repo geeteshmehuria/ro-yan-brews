@@ -13,6 +13,7 @@ os.environ.update(
     ADMIN_EMAIL="owner@royan.test",
     SMTP_USER="",  # empty (not unset): .env is loaded without overriding, so tests can never send real mail
     SMTP_PASS="",
+    BREVO_API_KEY="",
     JWT_SECRET="test-secret-" + "x" * 40,
 )
 
