@@ -57,6 +57,7 @@ def test_email_failure_records_the_real_reason(client, monkeypatch):
     assert r.status_code == 503 and r.json()["detail"] == "Could not send the email — try again in a minute"
     (row,) = rows()
     assert row.status == 503 and "TimeoutError: timed out" in row.error
+    assert "[SMTP " in row.error  # where we tried to connect
     assert "app-password" not in row.error
 
 

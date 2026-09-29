@@ -23,6 +23,10 @@ SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Ro-Yan Brews")
 MAIL_FROM = os.getenv("MAIL_FROM") or SMTP_USER  # the visible sender address
 
 
+class MailError(Exception):
+    """Carries the underlying failure plus where we tried to connect (for t_log)."""
+
+
 def configured() -> bool:
     return bool(SMTP_USER and SMTP_PASS)
 
@@ -45,7 +49,11 @@ def send_mail(to: str, subject: str, body: str) -> None:
                 s.sendmail(MAIL_FROM, [to], msg.as_string())
     except smtplib.SMTPAuthenticationError as e:
         log.error("SMTP login rejected — check SMTP_USER / SMTP_PASS (Gmail App Password or Brevo SMTP key)")
-        raise HTTPException(503, "Email service is misconfigured — try again later") from e
-    except Exception as e:  # `from e` keeps the real reason for t_log
+        raise HTTPException(503, "Email service is misconfigured — try again later") from _why(e)
+    except Exception as e:
         log.error("SMTP send failed: %s (is MAIL_FROM a verified sender, and is the port allowed by the host?)", e)
-        raise HTTPException(503, "Could not send the email — try again in a minute") from e
+        raise HTTPException(503, "Could not send the email — try again in a minute") from _why(e)
+
+
+def _why(e: Exception) -> MailError:
+    return MailError(f"{type(e).__name__}: {e} [SMTP {SMTP_HOST}:{SMTP_PORT}, from {MAIL_FROM}]")
