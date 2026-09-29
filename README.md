@@ -47,8 +47,8 @@ cd backend && python -m pytest tests -q
 | `DATABASE_URL` | Postgres URL. Unset = local SQLite. |
 | `ADMIN_EMAIL` | The owner's email. |
 | `OTP_DEV_MODE` | `true` accepts code `123456` (ignored in production). |
-| `SMTP_HOST/PORT/USER/PASS/FROM_NAME` | Gmail SMTP for login codes. **Blocked on Render's free tier** — use `BREVO_API_KEY` there. |
-| `BREVO_API_KEY`, `MAIL_FROM` | Send email over Brevo's HTTPS API instead of SMTP (`MAIL_FROM` = a sender verified in Brevo). Takes priority when set. One of the two email options is required in production. |
+| `SMTP_HOST/PORT/USER/PASS/FROM_NAME` | SMTP for login + "order ready" emails (required in production). Local: Gmail (`smtp.gmail.com:465`, App Password). Render free tier blocks 25/465/587, so production uses Brevo: `smtp-relay.brevo.com`, port **2525**, Brevo SMTP login + key. |
+| `MAIL_FROM` | Visible sender address; must be verified in Brevo. Defaults to `SMTP_USER`. |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins. |
 | `SEED_MENU` | Force the placeholder menu on/off. Default: on in dev, off in production. |
 

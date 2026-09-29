@@ -19,8 +19,9 @@ Render's free tier allows one Postgres and it is taken, so use a free Neon proje
 1. dashboard.render.com → **New → Blueprint** → connect the repo (Render reads `render.yaml`).
 2. It creates the `royan-api` web service. Fill the secret variables it asks for:
    - `DATABASE_URL` — the Neon string
-   - `BREVO_API_KEY` — from brevo.com (free, 300 emails/day; SMTP & API → API keys). In Brevo → Senders, verify `geeteshmaihuria@gmail.com` (it must match `MAIL_FROM`). Login codes are emailed; **without email nobody can log in**.
-   - Render's free tier **blocks SMTP**, so Gmail `SMTP_USER`/`SMTP_PASS` only work on a paid instance — leave them unset on free.
+   - `SMTP_USER` — your Brevo SMTP login (brevo.com → SMTP & API → SMTP; ends with `@smtp-brevo.com`)
+   - `SMTP_PASS` — a Brevo **SMTP key** (starts with `xsmtpsib-`). Login codes are emailed; **without these nobody can log in**.
+   - Render's free tier blocks SMTP ports 25/465/587, so `render.yaml` uses Brevo's relay on port **2525** (`SMTP_HOST=smtp-relay.brevo.com`). In Brevo → Senders, verify `geeteshmaihuria@gmail.com` (it must match `MAIL_FROM`).
 3. `JWT_SECRET` is generated for you. `ENV=production` is already set, so the app **refuses to start** with a weak secret and never accepts the dev code.
 4. When it's live, open `https://<your-service>.onrender.com/api/health` — expect `{"ok":true}`.
 

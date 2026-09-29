@@ -314,46 +314,22 @@ def test_smtp_auth_failure_gives_friendly_503(monkeypatch):
     assert e.value.status_code == 503
 
 
-# ---------------- Brevo HTTPS delivery (mocked — no real request) ----------------
 
-class _FakeResponse:
-    def close(self): pass
+def test_mail_from_is_the_sender_and_starttls_is_used_off_465(monkeypatch):
+    import smtplib
 
+    class _StartTLS(_FakeSMTP):
+        started = False
+        def starttls(self): _StartTLS.started = True
 
-def test_brevo_is_used_when_api_key_is_set(monkeypatch):
-    import json
-    import urllib.request
-    seen = {}
-
-    def fake_urlopen(req, timeout):
-        seen["url"], seen["headers"], seen["body"] = req.full_url, dict(req.header_items()), json.loads(req.data)
-        return _FakeResponse()
-
-    monkeypatch.setattr(mailer, "BREVO_API_KEY", "xkeysib-test")
+    monkeypatch.setattr(mailer, "SMTP_USER", "login@smtp-brevo.com")
+    monkeypatch.setattr(mailer, "SMTP_PASS", "key")
+    monkeypatch.setattr(mailer, "SMTP_PORT", 2525)
     monkeypatch.setattr(mailer, "MAIL_FROM", "stall@gmail.com")
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-    assert mailer.configured()
+    monkeypatch.setattr(mailer, "SMTP_FROM_NAME", "Ro-Yan Brews")
+    monkeypatch.setattr(smtplib, "SMTP", _StartTLS)
+    _FakeSMTP.sent = []
     mailer.send_mail("dest@x.com", "Hi", "Body")
-    assert seen["url"] == "https://api.brevo.com/v3/smtp/email"
-    assert seen["headers"]["Api-key"] == "xkeysib-test"
-    assert seen["body"]["to"] == [{"email": "dest@x.com"}] and seen["body"]["sender"]["email"] == "stall@gmail.com"
-    assert seen["body"]["textContent"] == "Body"
-
-
-def test_brevo_bad_key_or_sender_gives_friendly_503(monkeypatch):
-    import io
-    import urllib.error
-    import urllib.request
-    from fastapi import HTTPException
-
-    def reject(code):
-        def fake(req, timeout):
-            raise urllib.error.HTTPError(req.full_url, code, "no", {}, io.BytesIO(b"{}"))
-        return fake
-
-    monkeypatch.setattr(mailer, "BREVO_API_KEY", "bad")
-    for code, expected in ((401, "misconfigured"), (400, "Could not send")):
-        monkeypatch.setattr(urllib.request, "urlopen", reject(code))
-        with pytest.raises(HTTPException) as e:
-            mailer.send_mail("dest@x.com", "Hi", "Body")
-        assert e.value.status_code == 503 and expected in e.value.detail
+    frm, to, body = _FakeSMTP.sent[0]
+    assert _StartTLS.started and _FakeSMTP.last_login == ("login@smtp-brevo.com", "key")
+    assert frm == "stall@gmail.com" and "From: Ro-Yan Brews <stall@gmail.com>" in body

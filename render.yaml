@@ -19,21 +19,20 @@ services:
         value: "geeteshmaihuria@gmail.com" # owner account — this email logs in to the admin dashboard
       - key: OTP_DEV_MODE
         value: "false" # real emailed codes only — REQUIRES SMTP_USER/SMTP_PASS set in the dashboard
+      # Email goes through Brevo's SMTP relay on port 2525: Render's free tier blocks 25/465/587.
       # SMTP_USER / SMTP_PASS are secrets — set them in the Render dashboard, not here:
       - key: SMTP_HOST
-        value: smtp.gmail.com
+        value: smtp-relay.brevo.com
       - key: SMTP_PORT
-        value: "465"
+        value: "2525"
       - key: SMTP_FROM_NAME
         value: Ro-Yan Brews
-      - key: BREVO_API_KEY
-        sync: false # set in dashboard — Brevo HTTPS email API (Render's free tier blocks SMTP)
       - key: MAIL_FROM
-        value: "geeteshmaihuria@gmail.com" # must be a sender verified in Brevo
+        value: "geeteshmaihuria@gmail.com" # visible sender; must be verified in Brevo
       - key: SMTP_USER
-        sync: false # only works on a paid Render instance (free tier blocks SMTP)
+        sync: false # set in dashboard (Brevo SMTP login, ends with @smtp-brevo.com)
       - key: SMTP_PASS
-        sync: false # set in dashboard (Google App Password, 16 chars)
+        sync: false # set in dashboard (Brevo SMTP key, starts with xsmtpsib-)
       - key: ENV
         value: production
       - key: CORS_ORIGINS
