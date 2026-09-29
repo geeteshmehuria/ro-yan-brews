@@ -1,16 +1,41 @@
 import { useState } from "react";
 
+import { ICONS, LABELS } from "../constants.js";
 import { useReveal } from "../useReveal.js";
 
-const ICONS = { Shakes: "🥤", Burgers: "🍔", Sandwiches: "🥪", Momos: "🥟", Fries: "🍟" };
-
-function Header() {
+function Header({ activeCount, openOrders, openProfile }) {
   return (
     <header className="glass sticky top-2 z-40 mx-3 mt-3 flex items-center justify-between px-4 py-3">
       <div className="text-lg font-black tracking-wide">
         RO-YAN <span className="text-accent">BREWS</span>
       </div>
+      <div className="flex gap-2">
+        <button onClick={openOrders} className="glass-strong press relative rounded-xl px-3 py-1.5 text-sm font-bold">
+          My orders
+          {activeCount > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-black text-bg1">
+              {activeCount}
+            </span>
+          )}
+        </button>
+        <button onClick={openProfile} aria-label="Profile" className="glass-strong press rounded-xl px-3 py-1.5 text-sm">👤</button>
+      </div>
     </header>
+  );
+}
+
+// Always-visible status of orders still in progress, so ordering again never hides them.
+function ActiveOrders({ orders, open }) {
+  if (!orders.length) return null;
+  return (
+    <button onClick={open} className="glass press mx-3 mt-3 block w-[calc(100%-1.5rem)] p-3 text-left">
+      {orders.map((o) => (
+        <div key={o.id} className="flex justify-between text-sm font-bold">
+          <span>Order <span className="text-accent">#{o.order_number}</span></span>
+          <span className={o.status === "ready" ? "text-accent2" : "text-muted"}>{LABELS[o.status]} →</span>
+        </div>
+      ))}
+    </button>
   );
 }
 
@@ -103,11 +128,13 @@ function Skeletons() {
   );
 }
 
-export default function MenuScreen({ menu, error, retry, cart, totals, sizeOf, setSizes, changeQty, openCart }) {
+export default function MenuScreen({ menu, error, retry, cart, totals, sizeOf, setSizes, changeQty,
+  activeOrders, openOrders, openProfile, openCart }) {
   const [active, setActive] = useState("Shakes");
   return (
     <div className="screen-in pb-32">
-      <Header />
+      <Header activeCount={activeOrders.length} openOrders={openOrders} openProfile={openProfile} />
+      <ActiveOrders orders={activeOrders} open={openOrders} />
       <Hero />
       {error && (
         <div className="glass mx-3 mt-4 p-4 text-center">

@@ -5,9 +5,12 @@ services:
     rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # One worker on purpose: WebSockets and order numbering live in this process's memory.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
     healthCheckPath: /api/health
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.5" # requirements.txt pins are tested on Python 3.13
       - key: DATABASE_URL
         sync: false # set in dashboard — external Neon Postgres (Render free tier allows only one DB and it's taken)
       - key: JWT_SECRET

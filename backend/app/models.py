@@ -1,12 +1,12 @@
-from datetime import datetime
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer,
                         String)
 from sqlalchemy.orm import relationship
 
+from .clock import utcnow
 from .db import Base
 
-ORDER_STATUSES = ["placed", "preparing", "ready", "completed"]
-SIZES = ["half", "full", "na"]
+ORDER_STATUSES = ["placed", "preparing", "ready", "completed"]  # the forward-only ladder
+CANCELLED = "cancelled"  # off the ladder: only reachable from placed/preparing
 
 
 class MenuItem(Base):
@@ -24,7 +24,8 @@ class Customer(Base):
     __tablename__ = "customers"
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    name = Column(String(60), nullable=True)  # optional; the owner sees it instead of the email
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
 
 class Order(Base):
@@ -34,7 +35,8 @@ class Order(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
     status = Column(String(20), default="placed", nullable=False)
     total = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    note = Column(String(200), nullable=True)  # customer's special instructions
+    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
     customer = relationship("Customer")
     items = relationship("OrderItem", cascade="all, delete-orphan")
 
@@ -58,4 +60,4 @@ class OtpCode(Base):
     expires_at = Column(DateTime, nullable=False)
     verified = Column(Boolean, default=False, nullable=False)
     attempt_count = Column(Integer, default=0, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)

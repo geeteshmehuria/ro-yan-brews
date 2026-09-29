@@ -1,21 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { api, getSession, getToken, logout, WS_BASE } from "../api.js";
-import { Login } from "../customer/Checkout.jsx";
-
-const STATUSES = ["placed", "preparing", "ready", "completed"];
-const LABELS = { placed: "Placed", preparing: "Preparing", ready: "Ready", completed: "Completed" };
-const ICONS = { Shakes: "🥤", Burgers: "🍔", Sandwiches: "🥪", Momos: "🥟", Fries: "🍟" };
-
-function beep() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator(); const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value = 880; g.gain.value = 0.15;
-    o.start(); setTimeout(() => { o.stop(); ctx.close(); }, 350);
-  } catch { /* sound is best-effort */ }
-}
+import { api, getSession, getToken, logout } from "../api.js";
+import { beep } from "../alerts.js";
+import { ICONS, LABELS, STATUSES, isActive } from "../constants.js";
+import { Login } from "../customer/Login.jsx";
+import { useSocket } from "../useSocket.js";
 
 function AdminGate({ onOk }) {
   const [err, setErr] = useState("");
@@ -39,26 +28,37 @@ function OrderCard({ order, onStatus }) {
       onStatus(order.id, s);
     } catch (e) { alert(e.message); }
   };
+  const cancelled = order.status === "cancelled";
   return (
-    <div className={`glass mb-3 border-l-4 p-4 ${order.fresh ? "flash-new !border-l-danger" : "!border-l-accent"}`}>
+    <div className={`glass mb-3 border-l-4 p-4 ${cancelled ? "opacity-50 !border-l-danger" : order.fresh ? "flash-new !border-l-danger" : "!border-l-accent"}`}>
       <div className="flex justify-between font-extrabold">
-        <span>#{order.order_number} · {order.email_masked}</span>
+        <span>#{order.order_number} · {order.name || order.email}</span>
         <span className="text-accent2">₹{order.total}</span>
       </div>
+      {order.name && <div className="text-xs text-muted">{order.email}</div>}
       <div className="my-2 text-sm text-muted">
         {order.items.map((i) => `${i.name}${i.size !== "na" ? ` (${i.size})` : ""} ×${i.qty}`).join(", ")}
         <span className="ml-2 text-xs">· {time}</span>
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {STATUSES.map((s) => (
-          <button key={s} onClick={() => setStatus(s)}
-            className={`press rounded-lg border px-3 py-2 text-xs font-bold ${
-              order.status === s ? "border-transparent bg-accent2 text-bg1" : "border-[var(--stroke)] text-muted"
-            }`}>
-            {LABELS[s]}
-          </button>
-        ))}
-      </div>
+      {order.note && <div className="mb-2 text-sm font-bold text-accent">📝 {order.note}</div>}
+      {cancelled ? <div className="font-extrabold text-danger">Cancelled</div> : (
+        <div className="flex flex-wrap gap-1.5">
+          {STATUSES.map((s) => (
+            <button key={s} onClick={() => setStatus(s)}
+              className={`press rounded-lg border px-3 py-2 text-xs font-bold ${
+                order.status === s ? "border-transparent bg-accent2 text-bg1" : "border-[var(--stroke)] text-muted"
+              }`}>
+              {LABELS[s]}
+            </button>
+          ))}
+          {isActive(order) && order.status !== "ready" && (
+            <button onClick={() => window.confirm("Cancel this order?") && setStatus("cancelled")}
+              className="press rounded-lg border border-[var(--stroke)] px-3 py-2 text-xs font-bold text-danger">
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -68,7 +68,6 @@ export default function AdminApp() {
   const [orders, setOrders] = useState([]);
   const [menu, setMenu] = useState([]);
   const [stats, setStats] = useState(null);
-  const wsRef = useRef(null);
 
   const load = useCallback(async () => {
     const [o, m, s] = await Promise.all([
@@ -78,20 +77,19 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
-    load().catch(() => { logout(); setAuthed(false); });
-    const ws = new WebSocket(`${WS_BASE}/ws/admin?token=${encodeURIComponent(getToken())}`);
-    ws.onmessage = (ev) => {
-      const msg = JSON.parse(ev.data);
-      if (msg.type === "new_order") {
-        beep();
-        setOrders((os) => [{ ...msg.order, fresh: true }, ...os]);
-        load().catch(() => {});
-      }
-    };
-    wsRef.current = ws;
-    return () => ws.close();
+    if (authed) load().catch(() => { logout(); setAuthed(false); });
   }, [authed, load]);
+
+  // Live alerts. After a reconnect, reload so nothing placed while offline is missed.
+  useSocket(authed && `/ws/admin?token=${encodeURIComponent(getToken())}`, (msg) => {
+    if (msg.type === "new_order") {
+      beep();
+      setOrders((os) => [{ ...msg.order, fresh: true }, ...os]);
+    } else if (msg.type === "status") {  // e.g. the customer cancelled, or another admin device acted
+      setOrders((os) => os.map((o) => (o.id === msg.order_id ? { ...o, status: msg.status, fresh: false } : o)));
+    }
+    api("/api/admin/stats/today").then(setStats).catch(() => {});
+  }, () => load().catch(() => {}));
 
   if (!authed) return <AdminGate onOk={() => setAuthed(true)} />;
 

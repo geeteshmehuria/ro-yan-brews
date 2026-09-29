@@ -1,21 +1,22 @@
 # Ro-Yan Brews — Food Ordering App
 
-Pickup-only ordering app for the Ro-Yan fast food stall. Ocean glass UI. Phone + OTP identity, cash on pickup, real-time admin dashboard.
+Pickup-only ordering app for the Ro-Yan fast food stall. Ocean glass UI. Email + OTP login, cash on pickup, live order status that stays visible while ordering again, optional profile name, order notes, cancel-while-placed, a "ready" beep + email, and a real-time owner dashboard.
 
 ## Structure
 
-- `frontend/` — React (Vite) + Tailwind. Customer app at `/`, admin at `/admin`.
+- `frontend/` — React (Vite) + Tailwind. Customer app at `/`, owner dashboard at `/admin`.
 - `backend/` — FastAPI + SQLAlchemy. SQLite locally, PostgreSQL in production. WebSockets for live updates.
-- `render.yaml` — Render blueprint (API + Postgres). `frontend/vercel.json` — Vercel SPA config.
-- `SPEC.md` — all product decisions. `DEPLOY-STEPS.md` — how to deploy.
+- `render.yaml` — Render blueprint (API). `frontend/vercel.json` — Vercel SPA config.
+- `SPEC.md` — product decisions and v1/v2 scope. `DEPLOY-STEPS.md` — how to deploy. `CLAUDE.md` — architecture notes.
 
 ## Run locally
 
-Backend (no env vars needed — SQLite + dev OTP by default):
+Backend:
 
 ```
 cd backend
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+cp .env.example .env               # optional; works with no .env at all
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -24,23 +25,39 @@ Frontend:
 ```
 cd frontend
 npm install
-npm run dev        # opens http://localhost:5173
+npm run dev        # http://localhost:5173
 ```
 
-- OTP in dev: check the backend console for the code, or just use **1234**
-- Admin PIN default: **4321** (env `ADMIN_PIN`)
+- **Login code in dev**: `123456` (needs `OTP_DEV_MODE=true`, which is the `.env.example` default), or the real code printed in the backend console. Fixed code is **impossible** when `ENV=production`.
+- **Owner/admin**: log in with `ADMIN_EMAIL` — no separate password. Owner sessions last 7 days, customers 30.
+- **Real emails locally**: fill `SMTP_USER` + `SMTP_PASS` (Gmail App Password) in `backend/.env`.
 
 ## Tests
 
 ```
-cd backend && python -m pytest tests/ -q    # 15 tests
+cd backend && python -m pytest tests -q
 ```
 
-## Known caveats (accepted for v1)
+## Environment variables (backend)
 
-- Render free tier sleeps after inactivity — first request after idle takes ~30–60s
-- Dev-mode OTP (`OTP_DEV_MODE=true`) means anyone can verify with 1234 — replace with a real SMS provider (implement `OtpProvider` in `backend/app/otp_service.py`) before wide public use
-- Menu seed data is placeholder until the real stall menu is provided (`backend/app/seed.py`)
+| Var | Purpose |
+|---|---|
+| `ENV` | `dev` (default) or `production`. Production refuses to start with a weak `JWT_SECRET`, never accepts the dev code, and never auto-seeds the placeholder menu. |
+| `JWT_SECRET` | Random string, 32+ chars. |
+| `DATABASE_URL` | Postgres URL. Unset = local SQLite. |
+| `ADMIN_EMAIL` | The owner's email. |
+| `OTP_DEV_MODE` | `true` accepts code `123456` (ignored in production). |
+| `SMTP_HOST/PORT/USER/PASS/FROM_NAME` | Gmail SMTP for login codes (required in production). |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins. |
+| `SEED_MENU` | Force the placeholder menu on/off. Default: on in dev, off in production. |
+
+## Known caveats
+
+- Render free tier sleeps when idle — first request takes ~30–60 s (live sockets reconnect by themselves).
+- Runs as **one** backend process (live updates and order numbering are in memory).
+- "Today" (order numbers, admin stats) is the stall's IST day.
+- Login codes are limited per email (3 sends / 10 min, 5 wrong tries), not per IP.
+- Menu seed is placeholder until the real stall menu is provided (`backend/app/seed.py`); production starts with an **empty** menu.
 
 ## v2 backlog (deliberately not built)
 

@@ -3,6 +3,8 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from .models import CANCELLED, ORDER_STATUSES
+
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
 
@@ -28,25 +30,34 @@ class OrderItemIn(BaseModel):
     qty: int = Field(ge=1, le=50)
 
 
+def _blank_to_none(v):
+    v = (v or "").strip()
+    return v or None
+
+
 class OrderIn(BaseModel):
     items: List[OrderItemIn] = Field(min_length=1)
+    note: Optional[str] = Field(default=None, max_length=200)
+
+    _clean_note = field_validator("note")(_blank_to_none)
+
+
+class ProfileIn(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=60)
+
+    _clean_name = field_validator("name")(_blank_to_none)
 
 
 class StatusIn(BaseModel):
-    status: Literal["placed", "preparing", "ready", "completed"]
+    status: str
+
+    @field_validator("status")
+    @classmethod
+    def known_status(cls, v: str) -> str:
+        if v not in ORDER_STATUSES + [CANCELLED]:
+            raise ValueError("Unknown status")
+        return v
 
 
 class AvailabilityIn(BaseModel):
     is_available: bool
-
-
-class MenuItemOut(BaseModel):
-    id: int
-    name: str
-    category: str
-    price_half: Optional[int]
-    price_full: int
-    is_available: bool
-
-    class Config:
-        from_attributes = True

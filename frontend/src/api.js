@@ -1,8 +1,14 @@
+import { CART_KEY, TOKEN_KEY } from "./constants.js";
+
 export const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 export const WS_BASE = import.meta.env.VITE_WS_URL || API.replace(/^http/, "ws");
 
 export function getToken() {
-  return localStorage.getItem("session_token");
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 // Decode the JWT payload locally so screens can tell "logged in?" / "admin?"
@@ -13,7 +19,7 @@ export function getSession() {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
     if (payload.exp && payload.exp * 1000 < Date.now()) {
-      localStorage.removeItem("session_token");
+      localStorage.removeItem(TOKEN_KEY);
       return null;
     }
     return payload; // { cid, email, is_admin, exp }
@@ -22,8 +28,10 @@ export function getSession() {
   }
 }
 
+// The saved cart goes too, so the next person on this device doesn't inherit it.
 export function logout() {
-  localStorage.removeItem("session_token");
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(CART_KEY);
 }
 
 export async function api(path, { method = "GET", body, headers = {} } = {}) {
