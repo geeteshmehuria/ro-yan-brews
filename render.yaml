@@ -33,4 +33,4 @@ services:
       - key: ENV
         value: production
       - key: CORS_ORIGINS
-        value: https://REPLACE-WITH-YOUR-VERCEL-URL.vercel.app
+        value: https://ro-yan-brews.vercel.app
