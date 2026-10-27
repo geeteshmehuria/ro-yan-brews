@@ -1,24 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { api, getSession, getToken, logout } from "../api.js";
 import { beep } from "../alerts.js";
 import { ICONS, LABELS, STATUSES, isActive } from "../constants.js";
-import { Login } from "../customer/Login.jsx";
 import { useSocket } from "../useSocket.js";
-
-function AdminGate({ onOk }) {
-  const [err, setErr] = useState("");
-  return (
-    <div>
-      <h2 className="screen-in pt-12 text-center text-xl font-black">Owner login</h2>
-      {err && <p className="px-3 text-center text-sm text-danger">{err}</p>}
-      <Login cta="Enter dashboard" onDone={({ is_admin }) => {
-        if (is_admin) onOk();
-        else { logout(); setErr("That email isn't the owner account."); }
-      }} />
-    </div>
-  );
-}
 
 function OrderCard({ order, onStatus }) {
   const time = new Date(order.created_at + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -64,10 +50,19 @@ function OrderCard({ order, onStatus }) {
 }
 
 export default function AdminApp() {
-  const [authed, setAuthed] = useState(() => !!getSession()?.is_admin);
+  const navigate = useNavigate();
+  const session = getSession();
+  const isAdmin = !!session?.is_admin;
+
   const [orders, setOrders] = useState([]);
   const [menu, setMenu] = useState([]);
   const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      navigate("/", { replace: true });
+    }
+  }, [isAdmin, navigate]);
 
   const load = useCallback(async () => {
     const [o, m, s] = await Promise.all([
@@ -77,11 +72,16 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    if (authed) load().catch(() => { logout(); setAuthed(false); });
-  }, [authed, load]);
+    if (isAdmin) {
+      load().catch(() => {
+        logout();
+        navigate("/", { replace: true });
+      });
+    }
+  }, [isAdmin, load, navigate]);
 
   // Live alerts. After a reconnect, reload so nothing placed while offline is missed.
-  useSocket(authed && `/ws/admin?token=${encodeURIComponent(getToken())}`, (msg) => {
+  useSocket(isAdmin && `/ws/admin?token=${encodeURIComponent(getToken())}`, (msg) => {
     if (msg.type === "new_order") {
       beep();
       setOrders((os) => [{ ...msg.order, fresh: true }, ...os]);
@@ -91,7 +91,12 @@ export default function AdminApp() {
     api("/api/admin/stats/today").then(setStats).catch(() => {});
   }, () => load().catch(() => {}));
 
-  if (!authed) return <AdminGate onOk={() => setAuthed(true)} />;
+  if (!isAdmin) return null;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
 
   const toggleStock = async (item) => {
     const r = await api(`/api/admin/menu/${item.id}/availability`, {
@@ -107,7 +112,7 @@ export default function AdminApp() {
     <div className="screen-in px-3 pb-12">
       <header className="glass sticky top-2 z-40 mt-3 flex items-center justify-between px-4 py-3">
         <div className="text-lg font-black">RO-YAN <span className="text-accent">ADMIN</span></div>
-        <button onClick={() => { logout(); setAuthed(false); }}
+        <button onClick={handleLogout}
           className="glass-strong press rounded-xl px-3 py-1.5 text-xs font-bold">Log out</button>
       </header>
 

@@ -4,16 +4,39 @@ from typing import Optional
 
 import jwt
 from fastapi import HTTPException, Request
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
 
 DEFAULT_JWT_SECRET = "dev-secret-change-me"
 JWT_SECRET = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
-# The one account that gets the admin dashboard. Log in with this email (email +
-# OTP, same as any customer) and you are the owner; every other email is a normal
-# customer. There is no separate admin password — being this email *is* being admin.
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "geeteshmaihuria@gmail.com").strip().lower()
+# Owner account(s) that get the admin dashboard. Configured strictly via ADMIN_EMAIL env var (comma-separated).
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
+ADMIN_EMAILS = {
+    e.strip().lower()
+    for e in os.getenv("ADMIN_EMAIL", "").split(",")
+    if e.strip()
+}
+
 IS_PROD = os.getenv("ENV", "dev") == "production"
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 
 DAY = 60 * 60 * 24
+
+
+def verify_google_token(credential: str) -> dict:
+    """Verifies a Google ID token and returns dict with email and name."""
+    try:
+        audience = GOOGLE_CLIENT_ID or None
+        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), audience)
+        email = idinfo.get("email")
+        if not email or not idinfo.get("email_verified", True):
+            raise ValueError("Google account email is not verified")
+        return {
+            "email": email.strip().lower(),
+            "name": idinfo.get("name"),
+        }
+    except Exception as e:
+        raise HTTPException(400, f"Google login failed: {e}")
 
 
 def check_prod_config() -> None:
@@ -23,7 +46,8 @@ def check_prod_config() -> None:
 
 
 def is_admin_email(email: str) -> bool:
-    return (email or "").strip().lower() == ADMIN_EMAIL
+    clean = (email or "").strip().lower()
+    return bool(clean) and clean in ADMIN_EMAILS
 
 
 def create_session_token(customer_id: int, email: str) -> str:

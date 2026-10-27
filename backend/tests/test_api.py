@@ -99,9 +99,9 @@ def test_old_otp_rows_are_cleaned_up(client):
 
 
 def test_auth_mode_reports_dev_mode(client, monkeypatch):
-    assert client.get("/api/auth/mode").json() == {"dev_mode": True}
+    assert client.get("/api/auth/mode").json()["dev_mode"] is True
     monkeypatch.setattr(otp_service, "OTP_DEV_MODE", False)
-    assert client.get("/api/auth/mode").json() == {"dev_mode": False}
+    assert client.get("/api/auth/mode").json()["dev_mode"] is False
 
 
 def test_dev_mode_is_impossible_in_production():

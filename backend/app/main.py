@@ -19,8 +19,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import auth, mailer, otp_service, request_log
 from .clock import today_start
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
-from .models import CANCELLED, Customer, MenuItem, Order, OrderItem, ORDER_STATUSES
-from .schemas import AvailabilityIn, EmailIn, OrderIn, OtpVerifyIn, ProfileIn, StatusIn
+from .models import CANCELLED, Customer, MenuItem, Order, OrderItem, ORDER_STATUSES, TLog
+from .schemas import AvailabilityIn, EmailIn, GoogleAuthIn, OrderIn, OtpVerifyIn, ProfileIn, StatusIn
 from .seed import seed_menu
 from .ws import manager
 
@@ -72,7 +72,11 @@ async def log_failures(request: Request, call_next):
         response = await call_next(request)
     except Exception as exc:
         request.state.error = "".join(traceback.format_exception(exc))[-2000:]  # the end has the actual error
-        response = JSONResponse({"detail": "Internal Server Error"}, status_code=500)
+        origin = request.headers.get("origin")
+        headers = {}
+        if origin and (origin in CORS_ORIGINS or "*" in CORS_ORIGINS):
+            headers["Access-Control-Allow-Origin"] = origin
+        response = JSONResponse({"detail": "Internal Server Error"}, status_code=500, headers=headers)
     if response.status_code >= 400:
         try:
             email = auth.current_customer(request).get("email")
@@ -94,7 +98,7 @@ ORDER_LOAD = (joinedload(Order.customer), selectinload(Order.items).joinedload(O
 
 
 def mask(email: str) -> str:
-    """geeteshmaihuria@gmail.com -> ge***@gmail.com"""
+    """user@example.com -> us***@example.com"""
     local, _, domain = email.partition("@")
     return f"{local[:2]}***@{domain}"
 
@@ -172,8 +176,11 @@ def get_menu(db: Session = Depends(get_db)) -> list:
 
 @app.get("/api/auth/mode")
 def auth_mode() -> dict:
-    """True when the fixed dev code 123456 is accepted (never in production)."""
-    return {"dev_mode": otp_service.OTP_DEV_MODE}
+    """Auth settings and client IDs."""
+    return {
+        "dev_mode": otp_service.OTP_DEV_MODE,
+        "google_client_id": auth.GOOGLE_CLIENT_ID,
+    }
 
 
 @app.post("/api/otp/send")
@@ -197,6 +204,28 @@ def otp_verify(body: OtpVerifyIn, db: Session = Depends(get_db)) -> dict:
         db.refresh(customer)
     token = auth.create_session_token(customer.id, body.email)
     return {"verified": True, "token": token, "is_admin": auth.is_admin_email(body.email)}
+
+
+@app.post("/api/auth/google")
+def google_login(body: GoogleAuthIn, db: Session = Depends(get_db)) -> dict:
+    info = auth.verify_google_token(body.credential)
+    email = info["email"]
+    name = info.get("name")
+    customer = db.query(Customer).filter_by(email=email).first()
+    if customer is None:
+        customer = Customer(email=email, name=name)
+        db.add(customer)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            customer = db.query(Customer).filter_by(email=email).one()
+        db.refresh(customer)
+    elif name and not customer.name:
+        customer.name = name
+        db.commit()
+    token = auth.create_session_token(customer.id, email)
+    return {"verified": True, "token": token, "is_admin": auth.is_admin_email(email)}
 
 
 # ---------------- profile ----------------
@@ -347,6 +376,27 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
             counts[i.menu_item.name] += i.qty
     top = max(counts, key=counts.get) if counts else None
     return {"orders": len(orders), "revenue": sum(o.total for o in orders), "top_item": top}
+
+
+@app.get("/api/admin/logs")
+def get_admin_logs(limit: int = 50, request: Request = None, db: Session = Depends(get_db)) -> list:
+    auth.require_admin(request)
+    logs = db.query(TLog).order_by(TLog.created_at.desc()).limit(min(limit, 200)).all()
+    return [
+        {
+            "id": l.id,
+            "created_at": l.created_at.isoformat(),
+            "method": l.method,
+            "path": l.path,
+            "status": l.status,
+            "duration_ms": l.duration_ms,
+            "error": l.error,
+            "client_ip": l.client_ip,
+            "origin": l.origin,
+            "user_email": l.user_email,
+        }
+        for l in logs
+    ]
 
 
 # ---------------- websockets ----------------

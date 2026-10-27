@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { api, getSession, getToken, logout } from "../api.js";
 import { beep, flashTitle } from "../alerts.js";
@@ -25,6 +26,7 @@ function reconcile(cart, menu) {
 }
 
 export default function CustomerApp() {
+  const navigate = useNavigate();
   // Log in first: only a valid session opens the menu.
   const [screen, setScreen] = useState(() => (getSession() ? "menu" : "login"));
   const [menu, setMenu] = useState(null); // null = loading
@@ -41,8 +43,8 @@ export default function CustomerApp() {
 
   // If the owner logs in, send them straight to the admin dashboard.
   useEffect(() => {
-    if (getSession()?.is_admin) window.location.href = "/admin";
-  }, [screen]);
+    if (getSession()?.is_admin) navigate("/admin", { replace: true });
+  }, [screen, navigate]);
 
   // cart survives refresh
   useEffect(() => { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }, [cart]);
@@ -112,7 +114,7 @@ export default function CustomerApp() {
   }, [cart]);
 
   const onLoggedIn = ({ is_admin }) => {
-    if (is_admin) window.location.href = "/admin";
+    if (is_admin) navigate("/admin", { replace: true });
     else setScreen("menu");
   };
 

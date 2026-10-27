@@ -23,7 +23,7 @@ npm run dev        # http://localhost:5173 (proxies to backend at :8000 by defau
 npm run build
 ```
 
-Dev conveniences: OTP is `123456` for any email when `OTP_DEV_MODE=true` **and** `ENV` is not production (real 6-digit code is also logged to the backend console when SMTP isn't configured). Admin is the owner email — logging in with `ADMIN_EMAIL` (default `geeteshmaihuria@gmail.com`) opens the admin dashboard; there is no separate admin password. Deployment is Render (backend, external Neon Postgres, see `render.yaml`) + Vercel (frontend); see `DEPLOY-STEPS.md`.
+Dev conveniences: OTP is `123456` for any email when `OTP_DEV_MODE=true` **and** `ENV` is not production (real 6-digit code is also logged to the backend console when SMTP isn't configured). Admin is the owner email — logging in with `ADMIN_EMAIL` opens the admin dashboard; there is no separate admin password. Deployment is Render (backend, external Neon Postgres, see `render.yaml`) + Vercel (frontend); see `DEPLOY-STEPS.md`.
 
 ## Architecture
 
@@ -31,7 +31,7 @@ Dev conveniences: OTP is `123456` for any email when `OTP_DEV_MODE=true` **and**
 
 **One auth model, two privilege levels** (`backend/app/auth.py`):
 - Everyone logs in with email + 6-digit OTP → JWT, returned in the response body. The frontend stores it in `localStorage` and sends `Authorization: Bearer` (`frontend/src/api.js`). **Bearer-only — there is no auth cookie** (no CSRF surface, no `allow_credentials`). Tokens last 30 days (owner: 7).
-- Admin is *not* a separate account: `require_admin()` checks the token's email equals `ADMIN_EMAIL` (default `geeteshmaihuria@gmail.com`); the admin WebSocket passes the same JWT as `?token=` (`token_is_admin()`). Logging in as the owner email *is* being admin. The owner sees customers' full emails; customers only ever see masked ones (`order_payload(o, admin=...)`).
+- Admin is *not* a separate account: `require_admin()` checks the token's email is in `ADMIN_EMAILS` (configured via `ADMIN_EMAIL` env var); the admin WebSocket passes the same JWT as `?token=` (`token_is_admin()`). Logging in as the owner email *is* being admin. The owner sees customers' full emails; customers only ever see masked ones (`order_payload(o, admin=...)`).
 - **Production guard**: `auth.check_prod_config()` runs in the app lifespan and aborts startup when `ENV=production` and `JWT_SECRET` is the default or `< 32` chars. `OTP_DEV_MODE` is forced off in production, and the placeholder menu is not auto-seeded there (`SEED_MENU` overrides).
 
 **WebSockets — three channels** (`backend/app/ws.py`, single in-process `ConnectionManager`):

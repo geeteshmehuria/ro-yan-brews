@@ -16,7 +16,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_EMAIL
-        value: "geeteshmaihuria@gmail.com" # owner account — this email logs in to the admin dashboard
+        sync: false # owner account (set in Render dashboard) — this email logs in to the admin dashboard
       - key: OTP_DEV_MODE
         value: "false" # real emailed codes only — REQUIRES SMTP_USER/SMTP_PASS set in the dashboard
       # Email goes through Brevo's SMTP relay on port 2525: Render's free tier blocks 25/465/587.
@@ -28,7 +28,7 @@ services:
       - key: SMTP_FROM_NAME
         value: Ro-Yan Brews
       - key: MAIL_FROM
-        value: "geeteshmaihuria@gmail.com" # visible sender; must be verified in Brevo
+        sync: false # visible sender; set in Render dashboard (must be verified in Brevo)
       - key: SMTP_USER
         sync: false # set in dashboard (Brevo SMTP login, ends with @smtp-brevo.com)
       - key: SMTP_PASS
@@ -37,3 +37,5 @@ services:
         value: production
       - key: CORS_ORIGINS
         value: https://ro-yan-brews.vercel.app
+      - key: GOOGLE_CLIENT_ID
+        sync: false # optional: Google OAuth Client ID for direct Google sign-in

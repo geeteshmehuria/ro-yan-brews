@@ -24,6 +24,10 @@ class OtpVerifyIn(EmailIn):
     code: str = Field(min_length=6, max_length=6)
 
 
+class GoogleAuthIn(BaseModel):
+    credential: str = Field(min_length=10)
+
+
 class OrderItemIn(BaseModel):
     menu_item_id: int
     size: Literal["half", "full", "na"] = "na"
