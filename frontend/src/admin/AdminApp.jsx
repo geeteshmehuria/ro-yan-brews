@@ -8,7 +8,7 @@ import { useSocket } from "../useSocket.js";
 import FeedbackSection from "./FeedbackSection.jsx";
 import MenuSection from "./MenuSection.jsx";
 import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDetail.jsx";
-import { disablePush, enablePush } from "./push.js";
+import { disablePush, enablePush } from "../push.js";
 
 function OrderCard({ order, now, setStatus, open }) {
   const cancelled = order.status === "cancelled";
@@ -63,7 +63,8 @@ export default function AdminApp() {
   }, [isAdmin, navigate]);
 
   // Android app only: order alerts while the app is closed.
-  useEffect(() => { if (isAdmin) enablePush(); }, [isAdmin]);
+  // Tapping a "New order" notification opens that order.
+  useEffect(() => { if (isAdmin) enablePush((data) => setOpenId(Number(data.order_id))); }, [isAdmin]);
 
   const load = useCallback(async () => {
     const [o, s] = await Promise.all([api("/api/admin/orders"), api("/api/admin/stats/today")]);

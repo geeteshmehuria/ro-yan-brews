@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
 import { api, setToken } from "../api.js";
+import { useBackButton } from "../backButton.js";
 import { Back, BigButton, Field } from "../ui.jsx";
 
 function EmailScreen({ email, setEmail, next, googleClientId, onGoogleSuccess, googleErr, setGoogleErr, title, subtitle }) {
@@ -133,6 +134,7 @@ function OtpScreen({ email, back, onSubmit, devMode, cta }) {
 export function Login({ onDone, cta = "Log in", allowGoogle = true,
   title = "Welcome to Ro-Yan", subtitle = "Sign in to order or track your brew" }) {
   const [step, setStep] = useState("email"); // email | otp
+  useBackButton(() => setStep("email"), step === "otp"); // Android Back: re-enter the email
   const [email, setEmail] = useState("");
   const [devMode, setDevMode] = useState(false);
   // Only the backend's client ID: the button never shows while the backend refuses Google logins.

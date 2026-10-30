@@ -1,29 +1,33 @@
-// Android back button in the owner's app: closes the top open panel (order details, the
-// menu item form); with nothing open it leaves the app. On the website this does nothing.
-import { useEffect } from "react";
+// Android's back button in the app. Whatever is open on top (a panel, the cart, the code
+// screen) registers a handler; Back runs the newest one. With nothing open — the main screen —
+// Back leaves the app the way Android does (to the background, so the owner stays logged in
+// and connected). No-op on the website, where the browser's own Back applies.
 import { Capacitor } from "@capacitor/core";
+import { useEffect, useRef } from "react";
 
-const closers = []; // close functions of the panels that are open, newest last
+const stack = [];
 
-// Once at startup: from then on the back button never falls back to webview history
-// (that would step back to the login screen instead of leaving the app).
-export async function initBackButton() {
+// While `active`, Back calls `handler` instead of leaving the app.
+export function useBackButton(handler, active = true) {
+  const ref = useRef(handler);
+  ref.current = handler;
+  useEffect(() => {
+    if (!active) return;
+    const entry = () => ref.current();
+    stack.push(entry);
+    return () => {
+      const i = stack.lastIndexOf(entry);
+      if (i >= 0) stack.splice(i, 1);
+    };
+  }, [active]);
+}
+
+export async function installBackButton() {
   if (!Capacitor.isNativePlatform()) return;
   const { App } = await import("@capacitor/app");
   App.addListener("backButton", () => {
-    const close = closers[closers.length - 1];
-    if (close) close();
-    else App.exitApp();
+    const top = stack[stack.length - 1];
+    if (top) top();
+    else App.minimizeApp();
   });
-}
-
-// A panel calls this while it's open, next to its Escape-key handling.
-export function useBackToClose(onClose) {
-  useEffect(() => {
-    closers.push(onClose);
-    return () => {
-      const i = closers.lastIndexOf(onClose);
-      if (i !== -1) closers.splice(i, 1);
-    };
-  }, [onClose]);
 }

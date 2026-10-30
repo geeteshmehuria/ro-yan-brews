@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 
 import { api, getSession, getToken, logout } from "../api.js";
 import { beep, flashTitle } from "../alerts.js";
-import { CART_KEY, isActive } from "../constants.js";
+import { useBackButton } from "../backButton.js";
+import { disablePush, enablePush } from "../push.js";
+import { CART_KEY, IN_APP, MAX_QTY, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import { CartScreen } from "./Checkout.jsx";
 import FeedbackSheet from "./Feedback.jsx";
@@ -61,6 +63,7 @@ export default function CustomerApp() {
   }, []);
 
   const signOut = useCallback(() => {
+    disablePush(); // not awaited: it has already read the session token it needs
     logout();
     setCart({}); setOrders([]); setMe(null); setRating(null);
     setScreen("login");
@@ -85,6 +88,18 @@ export default function CustomerApp() {
     loadOrders();
     api("/api/me").then(setMe).catch(onAuthError);
   }, [loggedIn, loadMenu, loadOrders, onAuthError]);
+
+  // Android app: this customer's order updates as notifications, even with the app closed.
+  // Tapping one opens My orders (and the rating sheet for "Thanks — how was it?").
+  useEffect(() => {
+    if (!loggedIn || getSession()?.is_admin) return; // the owner is on their way to /admin
+    enablePush((data) => {
+      const id = Number(data.order_id);
+      setScreen("orders");
+      loadOrders();
+      if (data.kind === "completed") setRating({ id, prompt: true });
+    });
+  }, [loggedIn, loadOrders]);
 
   // live stock updates (only once logged in)
   useSocket(loggedIn ? "/ws/menu" : null, (msg) => {
@@ -119,13 +134,28 @@ export default function CustomerApp() {
     const key = `${item.id}_${size}`;
     setCart((c) => {
       const line = c[key] || { id: item.id, name: item.name, size, hasHalf: item.price_half != null, price: priceOf(item, size), qty: 0 };
-      const qty = line.qty + delta;
+      const qty = Math.min(line.qty + delta, MAX_QTY);
       const next = { ...c };
       if (qty <= 0) delete next[key];
       else next[key] = { ...line, qty };
       return next;
     });
   };
+
+  // From the cart screen: change a line's quantity (down to 0 removes it), or remove it.
+  const changeLine = (key, delta) => setCart((c) => {
+    if (!c[key]) return c;
+    const qty = Math.min(c[key].qty + delta, MAX_QTY);
+    const next = { ...c };
+    if (qty <= 0) delete next[key];
+    else next[key] = { ...c[key], qty };
+    return next;
+  });
+  const removeLine = (key) => setCart((c) => {
+    const next = { ...c };
+    delete next[key];
+    return next;
+  });
 
   const totals = useMemo(() => {
     const lines = Object.values(cart);
@@ -135,6 +165,9 @@ export default function CustomerApp() {
       total: lines.reduce((t, l) => t + l.qty * l.price, 0),
     };
   }, [cart]);
+
+  // Android Back: cart / orders / profile go back to the menu (the menu itself leaves the app).
+  useBackButton(() => setScreen("menu"), ["cart", "orders", "profile"].includes(screen));
 
   const onLoggedIn = ({ is_admin }) => {
     if (is_admin) navigate("/admin", { replace: true });
@@ -164,7 +197,7 @@ export default function CustomerApp() {
 
   return (
     <>
-      {screen === "login" && <Login onDone={onLoggedIn} />}
+      {screen === "login" && <Login onDone={onLoggedIn} allowGoogle={!IN_APP} />}
       {screen === "menu" && (
         <MenuScreen menu={menu} error={error} retry={loadMenu} cart={cart} totals={totals}
           sizeOf={sizeOf} setSizes={setSizes} changeQty={changeQty}
@@ -172,7 +205,8 @@ export default function CustomerApp() {
           openProfile={() => setScreen("profile")} openCart={() => setScreen("cart")} />
       )}
       {screen === "cart" && (
-        <CartScreen totals={totals} back={() => setScreen("menu")} placeOrder={placeOrder} />
+        <CartScreen totals={totals} back={() => setScreen("menu")} placeOrder={placeOrder}
+          changeLine={changeLine} removeLine={removeLine} />
       )}
       {screen === "orders" && (
         <OrdersScreen orders={orders} cancel={cancelOrder} rate={(o) => setRating({ id: o.id, prompt: false })}
@@ -182,7 +216,7 @@ export default function CustomerApp() {
       {screen === "profile" && (
         <ProfileScreen me={me} onSaved={setMe} onLogout={signOut} back={() => setScreen("menu")} />
       )}
-      {ratingOrder && loggedIn && (
+      {ratingOrder && !ratingOrder.reviewed && loggedIn && (
         <FeedbackSheet order={ratingOrder} prompt={rating.prompt} onDone={rated} onClose={closeRating} />
       )}
     </>
