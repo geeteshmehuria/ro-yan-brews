@@ -1,0 +1,8 @@
+{
+  "appId": "com.royanbrews.admin",
+  "appName": "Ro-Yan Admin",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false
+  }
+}

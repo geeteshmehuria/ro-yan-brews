@@ -7,6 +7,8 @@ __pycache__/
 .env
 .env.*
 !.env.example
+# public build settings of the Android admin app (no secrets) — must be committed
+!frontend/.env.android
 .pytest_cache/
 venv/
 .venv/

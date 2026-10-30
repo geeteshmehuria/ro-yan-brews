@@ -83,6 +83,15 @@ class OtpCode(Base):
     created_at = Column(DateTime, default=utcnow, nullable=False)
 
 
+class PushToken(Base):
+    """An owner's phone (the Android app), registered for FCM push notifications."""
+    __tablename__ = "push_tokens"
+    id = Column(Integer, primary_key=True)
+    token = Column(String(4096), unique=True, nullable=False)  # FCM registration token
+    email = Column(String(255), nullable=False)  # who registered it; only admin emails get pushes
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+
 class TLog(Base):
     """Failed requests and background-task errors, for debugging in production
     (read with SQL, e.g. the Neon console). Never stores bodies, query strings or tokens."""

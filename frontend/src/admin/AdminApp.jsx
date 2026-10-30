@@ -7,6 +7,7 @@ import { ICONS, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import FeedbackSection from "./FeedbackSection.jsx";
 import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDetail.jsx";
+import { disablePush, enablePush } from "./push.js";
 
 function OrderCard({ order, now, setStatus, open }) {
   const cancelled = order.status === "cancelled";
@@ -61,6 +62,9 @@ export default function AdminApp() {
     }
   }, [isAdmin, navigate]);
 
+  // Android app only: order alerts while the app is closed.
+  useEffect(() => { if (isAdmin) enablePush(); }, [isAdmin]);
+
   const load = useCallback(async () => {
     const [o, m, s] = await Promise.all([
       api("/api/admin/orders"), api("/api/menu"), api("/api/admin/stats/today"),
@@ -114,7 +118,8 @@ export default function AdminApp() {
   const openOrder = orders.find((o) => o.id === openId);
   const card = (o) => <OrderCard key={o.id} order={o} now={now} setStatus={setStatus} open={() => setOpenId(o.id)} />;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await disablePush();
     logout();
     navigate("/", { replace: true });
   };
