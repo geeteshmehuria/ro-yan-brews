@@ -6,3 +6,4 @@ export const isActive = (order) => order.status !== "completed" && order.status 
 export const ICONS = { Shakes: "🥤", Burgers: "🍔", Sandwiches: "🥪", Momos: "🥟", Fries: "🍟" };
 export const TOKEN_KEY = "session_token";
 export const CART_KEY = "royan_cart";
+export const PUSH_KEY = "royan_push_token"; // the Android app's FCM token, unregistered on logout
