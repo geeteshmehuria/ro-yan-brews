@@ -9,7 +9,7 @@ real Android app. Phase status:
 | 0 | Set up your Windows PC and phone | **you** |
 | 1 | Admin app runs on your phone (login, orders, stock, feedback) | built — run it with the steps below |
 | 2 | Feel like an app: icon, splash, screen stays awake, back button | next |
-| 3 | Push notifications for new and cancelled orders (even when closed) | later |
+| 3 | Push notifications for new and cancelled orders (even when closed) | built — needs the Firebase setup below |
 | 4 | Signed release APK installed for daily use | later |
 
 ---
@@ -80,6 +80,38 @@ load can take up to a minute while the free Render backend wakes up.)
 | "This app is only for the stall owner" | You logged in with a customer email. Use the `ADMIN_EMAIL` one |
 | No Google button | On purpose: Google blocks its sign-in inside apps. Use the email code |
 | Build fails (red text in Android Studio) | Send a screenshot of the error |
+
+---
+
+## Phase 3 — order notifications when the app is closed (one-time Firebase setup, ~15 min)
+
+The in-app alert comes over a live connection that Android closes with the app. To be woken
+up anyway, the backend sends a **push notification through Firebase Cloud Messaging (FCM)**
+— free, and the only way Android delivers to a closed app.
+
+**1. Create the Firebase project.** console.firebase.google.com → **Add project** (e.g.
+`ro-yan-admin`, Analytics off).
+
+**2. Add the Android app.** In the project → **Add app → Android** → package name
+**`com.royanbrews.admin`** (exactly) → **Register** → download **`google-services.json`**
+→ put it in `frontend\android\app\` (next to `build.gradle`). Skip the remaining SDK steps —
+they're already done.
+
+**3. Give the backend a key.** Project settings (⚙) → **Service accounts** → **Generate new
+private key** → a `.json` file downloads. Render → royan-api → Environment → add
+`FIREBASE_SERVICE_ACCOUNT` and paste the **whole file content** as the value → Save (redeploys).
+This key is a secret: never commit it or send it to anyone.
+
+**4. Rebuild and install the app:** `npm run build:android` → **▶ Run** in Android Studio.
+
+**5. Log in on the phone → tap Allow** when it asks to send notifications. Close the app,
+place an order from the website → "New order #N · ₹…" with sound.
+
+| Problem | Fix |
+|---|---|
+| Never asked to allow notifications / no alerts | Settings → Apps → Ro-Yan Admin → Notifications → on (and the **Orders** category on, with sound) |
+| Alerts come late or only when the app is open | vivo/iQOO kill background apps: Settings → Apps → Ro-Yan Admin → **Battery → Allow background activity / Don't restrict**, and turn on **Autostart** |
+| Still nothing | Neon: `SELECT * FROM t_log WHERE path = 'push' ORDER BY id DESC LIMIT 5;` shows FCM's error. `SELECT count(*) FROM push_tokens;` = 0 means the phone never registered (missing `google-services.json`, or permission denied) |
 
 ### How the app differs from the website
 - Opens straight to the **owner login**; customer accounts are refused.
