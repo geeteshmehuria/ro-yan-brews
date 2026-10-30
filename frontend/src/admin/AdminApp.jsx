@@ -7,7 +7,10 @@ import { ICONS, LABELS, STATUSES, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 
 function OrderCard({ order, onStatus }) {
-  const time = new Date(order.created_at + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const placed = new Date(order.created_at + "Z");
+  // Order numbers restart daily, so an order left over from an earlier day shows its date too.
+  const time = placed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+    (placed.toDateString() === new Date().toDateString() ? "" : ` · ${placed.toLocaleDateString([], { day: "numeric", month: "short" })}`);
   const setStatus = async (s) => {
     try {
       await api(`/api/admin/orders/${order.id}/status`, { method: "PATCH", body: { status: s } });
@@ -57,6 +60,7 @@ export default function AdminApp() {
   const [orders, setOrders] = useState([]);
   const [menu, setMenu] = useState([]);
   const [stats, setStats] = useState(null);
+  const [offline, setOffline] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -71,13 +75,23 @@ export default function AdminApp() {
     setOrders(o); setMenu(m); setStats(s);
   }, []);
 
+  // Only a rejected session logs the owner out. A network error or a 502 while the
+  // free-tier backend wakes up just retries.
   useEffect(() => {
-    if (isAdmin) {
-      load().catch(() => {
+    if (!isAdmin) return;
+    let timer, stopped = false;
+    const attempt = () => load().then(() => setOffline(false)).catch((e) => {
+      if (stopped) return;
+      if (e.status === 401 || e.status === 403) {
         logout();
         navigate("/", { replace: true });
-      });
-    }
+      } else {
+        setOffline(true);
+        timer = setTimeout(attempt, 5000);
+      }
+    });
+    attempt();
+    return () => { stopped = true; clearTimeout(timer); };
   }, [isAdmin, load, navigate]);
 
   // Live alerts. After a reconnect, reload so nothing placed while offline is missed.
@@ -115,6 +129,8 @@ export default function AdminApp() {
         <button onClick={handleLogout}
           className="glass-strong press rounded-xl px-3 py-1.5 text-xs font-bold">Log out</button>
       </header>
+
+      {offline && <p className="glass mt-4 p-3 text-center text-sm text-danger">Can't reach the server — retrying…</p>}
 
       {stats && (
         <div className="mt-4 grid grid-cols-3 gap-2.5">

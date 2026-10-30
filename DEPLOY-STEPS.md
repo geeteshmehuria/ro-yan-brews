@@ -23,7 +23,8 @@ Render's free tier allows one Postgres and it is taken, so use a free Neon proje
    - `SMTP_PASS` — a Brevo **SMTP key** (starts with `xsmtpsib-`). Login codes are emailed; **without these nobody can log in**.
    - Render's free tier blocks SMTP ports 25/465/587, so `render.yaml` uses Brevo's relay on port **2525** (`SMTP_HOST=smtp-relay.brevo.com`). In Brevo → Senders, verify your sender email (it must match `MAIL_FROM`).
 3. `JWT_SECRET` is generated for you. `ENV=production` is already set, so the app **refuses to start** with a weak secret and never accepts the dev code.
-4. When it's live, open `https://<your-service>.onrender.com/api/health` — expect `{"ok":true}`.
+4. Optional — Google sign-in: Google Cloud Console → APIs & Services → Credentials → **Create OAuth client ID** (Web application). Under **Authorized JavaScript origins** add your Vercel URL (and `http://localhost:5173` for dev). Put the client ID in Render as `GOOGLE_CLIENT_ID`. Leave it unset and Google login is simply off — the button is hidden and the endpoint refuses (it is never "on without a client ID").
+5. When it's live, open `https://<your-service>.onrender.com/api/health` — expect `{"ok":true}`.
 
 The menu starts **empty** in production (the placeholder menu is only for dev). Put the real menu in `backend/app/seed.py` and set `SEED_MENU=true` once, then unset it.
 
@@ -54,3 +55,4 @@ Render → royan-api → Environment → set `CORS_ORIGINS` = your Vercel URL (e
 - Tracker doesn't update live → `VITE_WS_URL` must be `wss://`.
 - "Email service is not configured" / "misconfigured" → `SMTP_USER`/`SMTP_PASS` missing or not an App Password.
 - Backend won't start → check logs for the `JWT_SECRET` message.
+- No Google button → `GOOGLE_CLIENT_ID` isn't set on Render (check `<backend>/api/auth/mode`). Button shows but sign-in fails → the Vercel URL isn't in the OAuth client's Authorized JavaScript origins, or the client ID is from a different Google project.

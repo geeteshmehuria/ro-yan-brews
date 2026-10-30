@@ -39,11 +39,22 @@ def _blank_to_none(v):
     return v or None
 
 
+MAX_ORDER_LINES = 30
+
+
 class OrderIn(BaseModel):
-    items: List[OrderItemIn] = Field(min_length=1)
+    # capped: each line is a DB lookup on the single event loop, so a huge order would stall everyone
+    items: List[OrderItemIn] = Field(min_length=1, max_length=MAX_ORDER_LINES)
     note: Optional[str] = Field(default=None, max_length=200)
 
     _clean_note = field_validator("note")(_blank_to_none)
+
+    @field_validator("items")
+    @classmethod
+    def no_repeated_lines(cls, v: List[OrderItemIn]) -> List[OrderItemIn]:
+        if len({(i.menu_item_id, i.size) for i in v}) != len(v):
+            raise ValueError("Each item and size may appear only once — use the quantity instead")
+        return v
 
 
 class ProfileIn(BaseModel):

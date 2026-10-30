@@ -38,4 +38,4 @@ services:
       - key: CORS_ORIGINS
         value: https://ro-yan-brews.vercel.app
       - key: GOOGLE_CLIENT_ID
-        sync: false # optional: Google OAuth Client ID for direct Google sign-in
+        sync: false # Google sign-in is OFF unless this is set (the endpoint refuses without it)

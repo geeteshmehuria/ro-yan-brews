@@ -10,7 +10,7 @@ from fastapi.exception_handlers import http_exception_handler, request_validatio
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from starlette.concurrency import run_in_threadpool
@@ -152,6 +152,9 @@ def notify_ready(order_number: int, email: str, name: Optional[str]) -> None:
         request_log.record("TASK", "notify_ready", error=request_log.describe(exc))
 
 
+MAX_ACTIVE_ORDERS = 3  # per customer: cash on pickup makes prank orders free, so cap the damage
+
+
 # ---------------- public ----------------
 
 @app.get("/api/health")
@@ -258,6 +261,11 @@ def update_me(body: ProfileIn, request: Request, db: Session = Depends(get_db)) 
 @app.post("/api/orders", status_code=201)
 async def create_order(body: OrderIn, request: Request, db: Session = Depends(get_db)) -> dict:
     session = auth.current_customer(request)
+    active = db.query(func.count(Order.id)).filter(
+        Order.customer_id == session["cid"], Order.status.notin_(["completed", CANCELLED])).scalar()
+    if active >= MAX_ACTIVE_ORDERS:
+        raise HTTPException(429, f"You already have {active} orders in progress — "
+                                 "please collect them before ordering more")
     total = 0
     lines = []
     for line in body.items:
@@ -326,7 +334,12 @@ def get_order(order_id: int, request: Request, db: Session = Depends(get_db)) ->
 @app.get("/api/admin/orders")
 def admin_orders(request: Request, db: Session = Depends(get_db)) -> list:
     auth.require_admin(request)
-    orders = todays_orders(db).order_by(Order.created_at.desc()).all()
+    # Today's orders plus any older one still in progress, so an order placed just before
+    # midnight doesn't drop out of the queue while it's being made.
+    unfinished = Order.status.notin_(["completed", CANCELLED])
+    orders = (db.query(Order).options(*ORDER_LOAD)
+              .filter(or_(Order.created_at >= today_start(), unfinished))
+              .order_by(Order.created_at.desc()).all())
     return [order_payload(o, admin=True) for o in orders]
 
 

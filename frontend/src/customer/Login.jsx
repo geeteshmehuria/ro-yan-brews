@@ -4,8 +4,6 @@ import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { api, setToken } from "../api.js";
 import { Back, BigButton, Field } from "../ui.jsx";
 
-const ENV_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-
 function EmailScreen({ email, setEmail, next, googleClientId, onGoogleSuccess, googleErr, setGoogleErr }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -27,17 +25,15 @@ function EmailScreen({ email, setEmail, next, googleClientId, onGoogleSuccess, g
     }
   };
 
-  const activeClientId = googleClientId || ENV_GOOGLE_CLIENT_ID;
-
   return (
     <main className="screen-in px-3 pb-10">
       <div className="px-3 py-8 text-center max-w-sm mx-auto">
         <h2 className="text-xl font-black">Welcome to Ro-Yan</h2>
         <p className="mt-1 text-sm text-muted">Sign in to order or track your brew</p>
 
-        {activeClientId ? (
+        {googleClientId ? (
           <div className="mt-6 mb-6">
-            <GoogleOAuthProvider clientId={activeClientId}>
+            <GoogleOAuthProvider clientId={googleClientId}>
               <div className="flex justify-center">
                 <GoogleLogin
                   onSuccess={onGoogleSuccess}
@@ -137,14 +133,15 @@ export function Login({ onDone, cta = "Log in" }) {
   const [step, setStep] = useState("email"); // email | otp
   const [email, setEmail] = useState("");
   const [devMode, setDevMode] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState(ENV_GOOGLE_CLIENT_ID);
+  // Only the backend's client ID: the button never shows while the backend refuses Google logins.
+  const [googleClientId, setGoogleClientId] = useState("");
   const [googleErr, setGoogleErr] = useState("");
 
   useEffect(() => {
     api("/api/auth/mode")
       .then((m) => {
         setDevMode(!!m.dev_mode);
-        if (m.google_client_id) setGoogleClientId(m.google_client_id);
+        setGoogleClientId(m.google_client_id || "");
       })
       .catch(() => {});
   }, []);

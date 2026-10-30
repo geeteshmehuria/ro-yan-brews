@@ -10,7 +10,6 @@ from google.oauth2 import id_token
 DEFAULT_JWT_SECRET = "dev-secret-change-me"
 JWT_SECRET = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
 # Owner account(s) that get the admin dashboard. Configured strictly via ADMIN_EMAIL env var (comma-separated).
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "").strip().lower()
 ADMIN_EMAILS = {
     e.strip().lower()
     for e in os.getenv("ADMIN_EMAIL", "").split(",")
@@ -23,20 +22,23 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 DAY = 60 * 60 * 24
 
 
+GOOGLE_ISSUERS = {"accounts.google.com", "https://accounts.google.com"}
+
+
 def verify_google_token(credential: str) -> dict:
-    """Verifies a Google ID token and returns dict with email and name."""
+    """Verify a Google ID token *issued for our client ID*; returns {email, name}.
+    Without GOOGLE_CLIENT_ID, Google login is off: verifying with no audience would accept
+    a token Google issued to any other site, letting that site log in as its users here."""
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(404, "Google sign-in is not enabled")
     try:
-        audience = GOOGLE_CLIENT_ID or None
-        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), audience)
-        email = idinfo.get("email")
-        if not email or not idinfo.get("email_verified", True):
-            raise ValueError("Google account email is not verified")
-        return {
-            "email": email.strip().lower(),
-            "name": idinfo.get("name"),
-        }
-    except Exception as e:
-        raise HTTPException(400, f"Google login failed: {e}")
+        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), GOOGLE_CLIENT_ID)
+    except Exception as e:  # bad signature, expired, wrong audience, Google certs unreachable
+        raise HTTPException(400, "Google sign-in failed — please try again") from e
+    email = (idinfo.get("email") or "").strip().lower()
+    if idinfo.get("iss") not in GOOGLE_ISSUERS or not email or idinfo.get("email_verified") not in (True, "true"):
+        raise HTTPException(400, "Google sign-in failed — please try again")
+    return {"email": email, "name": idinfo.get("name")}
 
 
 def check_prod_config() -> None:
@@ -78,7 +80,7 @@ def current_customer(request: Request) -> dict:
 def require_admin(request: Request) -> dict:
     session = current_customer(request)
     if not is_admin_email(session.get("email", "")):
-        raise HTTPException(401, "Admin access only")
+        raise HTTPException(403, "Admin access only")
     return session
 
 

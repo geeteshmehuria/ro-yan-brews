@@ -204,6 +204,33 @@ def test_order_isolation_between_customers(client, login, make_item):
     assert client.get(f"/api/orders/{order_a['id']}").status_code == 401
 
 
+def test_order_size_is_capped(client, login, make_item):
+    token = login()
+    items = [make_item(f"Item {n}") for n in range(31)]
+    body = lambda its: {"items": [{"menu_item_id": i["id"], "qty": 1} for i in its]}
+    assert client.post("/api/orders", json=body(items), headers=bearer(token)).status_code == 422
+    assert client.post("/api/orders", json=body(items[:30]), headers=bearer(token)).status_code == 201
+
+
+def test_repeated_order_lines_are_rejected(client, login, make_item):
+    item = make_item()
+    line = {"menu_item_id": item["id"], "qty": 1}
+    r = client.post("/api/orders", json={"items": [line, line]}, headers=bearer(login()))
+    assert r.status_code == 422
+
+
+def test_active_orders_per_customer_are_capped(client, login, make_item):
+    item = make_item()
+    token, owner = login(), bearer(login(OWNER))
+    ids = [place(client, token, item).json()["id"] for _ in range(3)]
+    assert place(client, token, item).status_code == 429
+    assert place(client, login("other@x.com"), item).status_code == 201  # per customer, not global
+    client.post(f"/api/orders/{ids[0]}/cancel", headers=bearer(token))
+    assert place(client, token, item).status_code == 201  # cancelled ones free a slot
+    client.patch(f"/api/admin/orders/{ids[1]}/status", json={"status": "completed"}, headers=owner)
+    assert place(client, token, item).status_code == 201  # and so do completed ones
+
+
 # ---------------- admin ----------------
 
 def test_status_transitions(client, login, make_item):
@@ -219,7 +246,7 @@ def test_status_transitions(client, login, make_item):
 
 def test_admin_requires_owner_session(client, login):
     assert client.get("/api/admin/orders").status_code == 401
-    assert client.get("/api/admin/orders", headers=bearer(login())).status_code == 401
+    assert client.get("/api/admin/orders", headers=bearer(login())).status_code == 403  # logged in, not owner
     assert client.get("/api/admin/orders", headers=bearer(login(OWNER))).status_code == 200
 
 
@@ -227,7 +254,23 @@ def test_customer_cannot_use_admin_endpoints(client, login, make_item):
     token = login()
     oid = place(client, token, make_item()).json()["id"]
     r = client.patch(f"/api/admin/orders/{oid}/status", json={"status": "ready"}, headers=bearer(token))
-    assert r.status_code == 401
+    assert r.status_code == 403
+
+
+def test_unfinished_orders_stay_in_the_queue_past_midnight(client, login, make_item):
+    item, token, owner = make_item(), login(), bearer(login(OWNER))
+    cooking, done, gone = (place(client, token, item).json()["id"] for _ in range(3))
+    client.patch(f"/api/admin/orders/{cooking}/status", json={"status": "preparing"}, headers=owner)
+    client.patch(f"/api/admin/orders/{done}/status", json={"status": "completed"}, headers=owner)
+    client.post(f"/api/orders/{gone}/cancel", headers=bearer(token))
+    with SessionLocal() as db:
+        db.query(Order).update({"created_at": utcnow() - timedelta(days=1)})
+        db.commit()
+    today = place(client, token, item).json()["id"]
+    queue = [o["id"] for o in client.get("/api/admin/orders", headers=owner).json()]
+    assert queue == [today, cooking]  # yesterday's finished/cancelled ones are gone
+    stats = client.get("/api/admin/stats/today", headers=owner).json()
+    assert stats["orders"] == 1  # stats stay "today only"
 
 
 def test_owner_sees_full_email_customer_sees_masked(client, login, make_item):
