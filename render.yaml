@@ -38,5 +38,7 @@ services:
       - key: CORS_ORIGINS
         # the website, and the owner's Android app (Capacitor serves it from https://localhost)
         value: https://ro-yan-brews.vercel.app,https://localhost
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false # set in dashboard: the whole Firebase service-account JSON. Push alerts to the owner's app are OFF without it
       - key: GOOGLE_CLIENT_ID
         sync: false # Google sign-in is OFF unless this is set (the endpoint refuses without it)

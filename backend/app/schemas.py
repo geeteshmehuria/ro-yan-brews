@@ -96,3 +96,7 @@ class StatusIn(BaseModel):
 
 class AvailabilityIn(BaseModel):
     is_available: bool
+
+
+class PushTokenIn(BaseModel):
+    token: str = Field(min_length=20, max_length=4096)

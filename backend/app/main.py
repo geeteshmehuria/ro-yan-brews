@@ -16,12 +16,12 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import auth, mailer, otp_service, request_log
+from . import auth, mailer, otp_service, push, request_log
 from .clock import today_start
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
-from .models import CANCELLED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, TLog
+from .models import CANCELLED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, PushToken, TLog
 from .schemas import (AvailabilityIn, EmailIn, FeedbackIn, GoogleAuthIn, OrderIn, OtpVerifyIn,
-                      ProfileIn, StatusIn)
+                      ProfileIn, PushTokenIn, StatusIn)
 from .seed import seed_menu
 from .ws import manager
 
@@ -263,7 +263,8 @@ def update_me(body: ProfileIn, request: Request, db: Session = Depends(get_db)) 
 # get the same number. That only holds for a single worker (render.yaml pins one —
 # the in-process WebSocket manager needs that anyway). Don't change to `def`.
 @app.post("/api/orders", status_code=201)
-async def create_order(body: OrderIn, request: Request, db: Session = Depends(get_db)) -> dict:
+async def create_order(body: OrderIn, request: Request, background: BackgroundTasks,
+                       db: Session = Depends(get_db)) -> dict:
     session = auth.current_customer(request)
     active = db.query(func.count(Order.id)).filter(
         Order.customer_id == session["cid"], Order.status.notin_(["completed", CANCELLED])).scalar()
@@ -298,7 +299,11 @@ async def create_order(body: OrderIn, request: Request, db: Session = Depends(ge
     db.commit()
     db.refresh(order)
 
-    await manager.broadcast_admin({"type": "new_order", "order": order_payload(order, admin=True)})
+    payload = order_payload(order, admin=True)
+    await manager.broadcast_admin({"type": "new_order", "order": payload})
+    summary = ", ".join(f"{i['name']} ×{i['qty']}" for i in payload["items"])
+    background.add_task(push.notify_admins, f"New order #{order.order_number} · ₹{order.total}",
+                        f"{payload['name'] or payload['email']}: {summary}", order.id)
     return order_payload(order)
 
 
@@ -311,7 +316,8 @@ def my_orders(request: Request, db: Session = Depends(get_db)) -> list:
 
 
 @app.post("/api/orders/{order_id}/cancel")
-async def cancel_order(order_id: int, request: Request, db: Session = Depends(get_db)) -> dict:
+async def cancel_order(order_id: int, request: Request, background: BackgroundTasks,
+                       db: Session = Depends(get_db)) -> dict:
     session = auth.current_customer(request)
     order = db.get(Order, order_id)
     if order is None or order.customer_id != session["cid"]:
@@ -321,6 +327,8 @@ async def cancel_order(order_id: int, request: Request, db: Session = Depends(ge
     order.status = CANCELLED
     db.commit()
     await announce(order)
+    background.add_task(push.notify_admins, f"Order #{order.order_number} cancelled",
+                        "The customer cancelled it — don't make it.", order.id)
     return {"id": order.id, "status": order.status}
 
 
@@ -439,6 +447,31 @@ def admin_feedback(request: Request, db: Session = Depends(get_db)) -> dict:
             "allow_public": f.allow_public, "created_at": f.created_at.isoformat(),
         } for f in recent],
     }
+
+
+@app.post("/api/admin/push-token")
+def register_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    """The owner's Android app registers its FCM token here after login."""
+    email = auth.require_admin(request)["email"]
+    row = db.query(PushToken).filter_by(token=body.token).first()
+    if row is None:
+        db.add(PushToken(token=body.token, email=email))
+    else:
+        row.email = email
+    try:
+        db.commit()
+    except IntegrityError:  # registered twice at once
+        db.rollback()
+    return {"registered": True, "enabled": push.configured()}
+
+
+@app.post("/api/admin/push-token/remove")
+def remove_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    """Called on logout, so a logged-out phone stops getting order alerts."""
+    auth.require_admin(request)
+    db.query(PushToken).filter_by(token=body.token).delete()
+    db.commit()
+    return {"removed": True}
 
 
 @app.get("/api/admin/logs")
