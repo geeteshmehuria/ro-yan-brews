@@ -1,5 +1,8 @@
-from app import push
-from tests.conftest import OWNER, bearer, place
+from app import auth, push
+from app.db import SessionLocal
+from app.models import PushToken, TLog
+
+from conftest import OWNER, bearer, place
 
 TOKEN = "fcm-token-" + "a" * 40
 
@@ -67,3 +70,33 @@ def test_dead_token_is_dropped_and_order_still_works(client, login, make_item, m
     assert place(client, login(), item).status_code == 201
     assert place(client, login("other@gmail.com"), item).status_code == 201
     assert len(fcm.sent) == 1  # the token was deleted after the first 404
+
+
+def test_no_push_without_firebase_key(client, login, make_item, monkeypatch):
+    fcm = fake_fcm(monkeypatch)
+    monkeypatch.setattr(push, "_KEY", "")
+    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    assert place(client, login(), make_item()).status_code == 201
+    assert fcm.sent == []
+
+
+def test_phone_of_a_removed_owner_gets_no_push(client, login, make_item, monkeypatch):
+    fcm = fake_fcm(monkeypatch)
+    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    monkeypatch.setattr(auth, "ADMIN_EMAILS", {"new-owner@royan.test"})  # ADMIN_EMAIL changed
+    place(client, login(), make_item())
+    assert fcm.sent == []
+
+
+def test_fcm_outage_is_logged_and_never_breaks_the_order(client, login, make_item, monkeypatch):
+    session = fake_fcm(monkeypatch)
+
+    def down(url, json, timeout):
+        raise ConnectionError("fcm unreachable")
+    session.post = down
+    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    assert place(client, login(), make_item()).status_code == 201
+    with SessionLocal() as db:
+        row = db.query(TLog).filter_by(method="TASK", path="push").one()
+        assert "fcm unreachable" in row.error
+        assert db.query(PushToken).count() == 1  # an outage is not a dead token

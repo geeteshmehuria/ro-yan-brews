@@ -118,8 +118,8 @@ export default function AdminApp() {
   const openOrder = orders.find((o) => o.id === openId);
   const card = (o) => <OrderCard key={o.id} order={o} now={now} setStatus={setStatus} open={() => setOpenId(o.id)} />;
 
-  const handleLogout = async () => {
-    await disablePush();
+  const handleLogout = () => {
+    disablePush(); // not awaited: api() reads the session token synchronously, and a sleeping backend would freeze the button
     logout();
     navigate("/", { replace: true });
   };
