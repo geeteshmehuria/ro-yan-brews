@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { ICONS } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import MenuItemForm from "./MenuItemForm.jsx";
+import { ask, tell } from "../dialog.jsx";
 
 const UNDO_MS = 6000;
 
@@ -50,15 +51,16 @@ export default function MenuSection({ visible = true, filter = "all", setFilter 
   }, load);
 
   const act = async (fn) => {
-    try { await fn(); } catch (e) { alert(e.message); }
+    try { await fn(); } catch (e) { tell(e.message); }
     load();
   };
 
   const toggleStock = (item) => act(() => api(`/api/admin/menu/${item.id}/availability`, {
     method: "PATCH", body: { is_available: !item.is_available } }));
 
-  const remove = (item) => {
-    if (!window.confirm(`Remove ${item.name} from the menu? Past orders keep it, and you can restore it later.`)) return;
+  const remove = async (item) => {
+    if (!await ask({ title: `Remove ${item.name}?`, message: "It leaves the menu. Past orders keep it, and you can restore it later.",
+      confirmLabel: "Remove", tone: "danger" })) return;
     act(async () => {
       await api(`/api/admin/menu/${item.id}/remove`, { method: "POST" });
       clearTimeout(undoTimer.current);
@@ -73,8 +75,9 @@ export default function MenuSection({ visible = true, filter = "all", setFilter 
     act(() => api(`/api/admin/menu/${item.id}/restore`, { method: "POST" }));
   };
 
-  const deleteForever = (item) => {
-    if (!window.confirm(`Delete ${item.name} for good? This can't be undone.`)) return;
+  const deleteForever = async (item) => {
+    if (!await ask({ title: `Delete ${item.name} for good?`, message: "This can't be undone.",
+      confirmLabel: "Delete", tone: "danger" })) return;
     act(() => api(`/api/admin/menu/${item.id}`, { method: "DELETE" }));
   };
 
