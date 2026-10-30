@@ -28,14 +28,14 @@ function OrderCard({ order, now, setStatus, open }) {
     <div role="button" tabIndex={0} aria-label={`Open order #${order.order_number}`}
       onClick={open} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && e.target === e.currentTarget && (e.preventDefault(), open())}
       className={`glass mb-3 cursor-pointer border-l-4 p-4 ${cancelled ? "opacity-50 !border-l-danger" : order.fresh ? "flash-new !border-l-danger"
-        : wait === "red" ? "!border-l-danger" : wait === "amber" ? "!border-l-[#f59e0b]" : "!border-l-accent"}`}>
+        : wait === "red" ? "!border-l-danger" : wait === "amber" ? "!border-l-warn" : "!border-l-accent"}`}>
       <div className="flex justify-between font-extrabold">
         <span>#{order.order_number} · {order.name || order.email}</span>
         <span className="text-accent2">₹{order.total}</span>
       </div>
       <div className="mt-0.5 text-xs text-muted">
         {placedAt(order)} ·{" "}
-        <span className={wait === "red" ? "font-black text-danger" : wait === "amber" ? "font-black text-[#f59e0b]" : ""}>
+        <span className={wait === "red" ? "font-black text-danger" : wait === "amber" ? "font-black text-warn" : ""}>
           {wait && "⏱ "}{ago(order, now)}
         </span>
       </div>
@@ -110,6 +110,9 @@ export default function AdminApp() {
 
   // Android Back on the Menu / Reviews tab returns to Orders (the home tab).
   useBackButton(() => setTab("orders"), tab !== "orders");
+
+  // The out-of-stock filter is for that one visit: leaving the Menu tab resets it.
+  useEffect(() => { if (tab !== "menu") setMenuFilter("all"); }, [tab]);
 
   const refreshStats = useCallback(() => api("/api/admin/stats/today").then(setStats).catch(() => {}), []);
   useEffect(() => { if (isAdmin && tab === "orders") refreshStats(); }, [isAdmin, tab, refreshStats]); // e.g. stock changed
@@ -217,7 +220,7 @@ export default function AdminApp() {
             <button onClick={toggleStore} disabled={storeBusy} role="switch" aria-checked={accepting}
               aria-label={accepting ? "Taking orders — tap to pause" : "Orders paused — tap to open"}
               className={`press mt-4 flex w-full items-center justify-between gap-3 rounded-glass border p-3.5 text-left ${
-                accepting ? "glass border-[var(--stroke)]" : "border-danger bg-[rgba(248,113,113,0.12)]"}`}>
+                accepting ? "glass border-[var(--stroke)]" : "border-danger bg-danger-soft"}`}>
               <span>
                 <b className={accepting ? "text-accent2" : "text-danger"}>
                   {accepting ? "🟢 Taking orders" : "⏸ Orders paused"}
@@ -244,7 +247,7 @@ export default function AdminApp() {
 
           {stats?.out_of_stock > 0 && (
             <button onClick={showOutOfStock}
-              className="press mt-3 flex w-full items-center justify-between rounded-glass border border-[#f59e0b] bg-[rgba(245,158,11,0.1)] px-4 py-3 text-left text-sm font-bold">
+              className="press mt-3 flex w-full items-center justify-between rounded-glass border border-warn bg-warn-soft px-4 py-3 text-left text-sm font-bold">
               <span>⚠ {stats.out_of_stock} {stats.out_of_stock === 1 ? "item is" : "items are"} out of stock</span>
               <span className="text-accent">Menu ›</span>
             </button>
@@ -279,7 +282,8 @@ export default function AdminApp() {
         </>
       )}
 
-      {tab === "menu" && <MenuSection filter={menuFilter} setFilter={setMenuFilter} />}
+      {/* stays mounted on other tabs: its live data and a pending Undo survive a tab switch */}
+      <MenuSection visible={tab === "menu"} filter={menuFilter} setFilter={setMenuFilter} />
       {tab === "reviews" && <FeedbackSection alwaysOpen />}
 
       <nav aria-label="Admin sections"

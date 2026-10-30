@@ -10,7 +10,7 @@ from fastapi.exception_handlers import http_exception_handler, request_validatio
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from starlette.concurrency import run_in_threadpool
@@ -416,6 +416,8 @@ async def set_status(order_id: int, body: StatusIn, request: Request, background
     if not allowed:
         raise HTTPException(400, f"Cannot move order from {order.status} to {body.status}")
     order.status = body.status
+    if order.status == "completed":
+        order.completed_at = utcnow()
     db.commit()
     await announce(order)
     background.add_task(push.notify_customer, order.customer_id, order.id, order.order_number,
@@ -569,11 +571,17 @@ async def set_store(body: StoreIn, request: Request, db: Session = Depends(get_d
 @app.get("/api/admin/stats/today")
 def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
     """The owner's numbers. Cash is only counted once an order is Done: at a cash-on-pickup
-    stall, Done means handed over and paid. Unfinished orders (any day) are "to collect"."""
+    stall, Done means handed over and paid — so it counts on the day it was marked Done (an
+    order placed at 23:50 and collected at 00:10 is the new day's cash). Unfinished orders
+    (any day) are "to collect"."""
     auth.require_admin(request)
+    start = today_start()
     today = todays_orders(db).all()
     kept = [o for o in today if o.status != CANCELLED]
-    done = [o for o in kept if o.status == "completed"]
+    done = (db.query(Order).filter(Order.status == "completed", or_(
+        Order.completed_at >= start,
+        and_(Order.completed_at.is_(None), Order.created_at >= start),  # done before completed_at existed
+    )).all())
     unfinished = (db.query(Order).filter(Order.status.notin_(["completed", CANCELLED])).all())
     counts: dict = defaultdict(int)
     for o in kept:

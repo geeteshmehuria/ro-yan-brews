@@ -40,6 +40,9 @@ class Order(Base):
     total = Column(Integer, nullable=False)
     note = Column(String(200), nullable=True)  # customer's special instructions
     created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    # When it was marked Done (handed over and paid) — the day its cash counts for. Nullable so
+    # add_missing_columns adds it; orders completed before it existed fall back to created_at.
+    completed_at = Column(DateTime, nullable=True, index=True)
     customer = relationship("Customer")
     items = relationship("OrderItem", cascade="all, delete-orphan")
     feedback = relationship("Feedback", cascade="all, delete-orphan")

@@ -137,7 +137,7 @@ export default function MenuScreen({ paused, menu, error, retry, cart, totals, s
       <Header activeCount={activeOrders.length} openOrders={openOrders} openProfile={openProfile} />
       <ActiveOrders orders={activeOrders} open={openOrders} />
       {paused && (
-        <div role="status" className="mx-3 mt-3 rounded-glass border border-danger bg-[rgba(248,113,113,0.12)] p-4 text-center">
+        <div role="status" className="mx-3 mt-3 rounded-glass border border-danger bg-danger-soft p-4 text-center">
           <b className="text-danger">⏸ {paused}</b>
           <p className="mt-1 text-sm text-muted">You can still look at the menu and track your orders.</p>
         </div>

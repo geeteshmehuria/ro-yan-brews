@@ -90,3 +90,39 @@ def test_pause_is_pushed_live_to_menus_and_the_owner(client, login):
         assert menu.receive_json()["type"] == "store"
         msg = admin.receive_json()
         assert msg["type"] == "store" and msg["accepting_orders"] is False
+
+
+def test_cash_counts_on_the_day_the_order_was_done(client, login, make_item):
+    """Placed before midnight, collected after: it is the new day's cash, not lost."""
+    owner, token = bearer(login(OWNER)), login()
+    oid = place(client, token, make_item(full=120), qty=1).json()["id"]
+    with SessionLocal() as db:
+        db.get(Order, oid).created_at = utcnow() - timedelta(days=1)  # placed "yesterday"
+        db.commit()
+    assert stats(client, owner)["to_collect"] == 120
+    status(client, owner, oid, "completed")  # collected today
+    s = stats(client, owner)
+    assert (s["cash_collected"], s["completed"], s["to_collect"], s["orders"]) == (120, 1, 0, 0)
+    with SessionLocal() as db:
+        assert db.get(Order, oid).completed_at is not None
+
+
+def test_cash_from_an_earlier_day_is_not_counted_today(client, login, make_item):
+    owner, token = bearer(login(OWNER)), login()
+    oid = place(client, token, make_item(full=70), qty=1).json()["id"]
+    status(client, owner, oid, "completed")
+    with SessionLocal() as db:
+        o = db.get(Order, oid)
+        o.created_at = o.completed_at = utcnow() - timedelta(days=1)
+        db.commit()
+    assert stats(client, owner)["cash_collected"] == 0
+
+
+def test_orders_done_before_completed_at_existed_count_by_placed_day(client, login, make_item):
+    owner, token = bearer(login(OWNER)), login()
+    oid = place(client, token, make_item(full=50), qty=1).json()["id"]
+    status(client, owner, oid, "completed")
+    with SessionLocal() as db:
+        db.get(Order, oid).completed_at = None  # an old row
+        db.commit()
+    assert stats(client, owner)["cash_collected"] == 50
