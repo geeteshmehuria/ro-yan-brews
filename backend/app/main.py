@@ -3,6 +3,7 @@ import time
 import traceback
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from typing import Optional
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -17,7 +18,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import auth, mailer, otp_service, push, request_log
-from .clock import today_start, utcnow
+from .clock import days_start, to_ist, today_start, utcnow
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
 from .models import CANCELLED, CLOSED, NOT_COLLECTED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, PushToken, Setting, TLog
 from .schemas import (AvailabilityIn, EmailIn, FeedbackIn, GoogleAuthIn, MenuItemIn, OrderIn,
@@ -606,6 +607,66 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
         "accepting_orders": accepting_orders(db),
         "top_item": top,
         "revenue": cash,  # old app versions (<= 1.9) show this as "Revenue": now the cash actually collected
+    }
+
+
+@app.get("/api/admin/reports")
+def reports(request: Request, days: int = 7, db: Session = Depends(get_db)) -> dict:
+    """The owner's "Today" tab: today's summary, then the last `days` days (today included,
+    stall days in IST). Cash counts on the day an order was marked Done (completed_at; orders
+    done before it existed fall back to created_at) and uses the prices saved on the order.
+    Item sales and busiest hours are over the same days; best sellers count paid (Done) orders."""
+    auth.require_admin(request)
+    days = max(1, min(days, 90))
+    start, today = days_start(days), today_start()
+    paid_at = lambda o: o.completed_at or o.created_at  # noqa: E731
+
+    placed = db.query(Order).options(*ORDER_LOAD).filter(Order.created_at >= start).all()
+    done = (db.query(Order).options(*ORDER_LOAD).filter(Order.status == "completed", or_(
+        Order.completed_at >= start, and_(Order.completed_at.is_(None), Order.created_at >= start))).all())
+
+    # per day, oldest first
+    labels = [to_ist(start + timedelta(days=d)).date() for d in range(days)]
+    cash_by_day = defaultdict(int)
+    orders_by_day = defaultdict(int)
+    for o in done:
+        cash_by_day[to_ist(paid_at(o)).date()] += o.total
+    hours = [0] * 24
+    for o in placed:
+        if o.status != CANCELLED:
+            orders_by_day[to_ist(o.created_at).date()] += 1
+            hours[to_ist(o.created_at).hour] += 1
+
+    items: dict = {}
+    for o in done:
+        for i in o.items:
+            row = items.setdefault(i.menu_item_id, {"name": i.menu_item.name, "qty": 0, "half": 0, "value": 0})
+            row["qty"] += i.qty
+            row["half"] += i.qty if i.size == "half" else 0
+            row["value"] += i.qty * i.price_at_order
+    top = sorted(items.values(), key=lambda r: (-r["qty"], -r["value"], r["name"]))[:5]
+
+    def summary(orders_placed, orders_done) -> dict:
+        cash = sum(o.total for o in orders_done)
+        return {
+            "orders": sum(1 for o in orders_placed if o.status != CANCELLED),
+            "completed": len(orders_done),
+            "cancelled": sum(1 for o in orders_placed if o.status == CANCELLED),
+            "not_collected": sum(1 for o in orders_placed if o.status == NOT_COLLECTED),
+            "cash": cash,
+            "average": round(cash / len(orders_done)) if orders_done else 0,
+        }
+
+    today_summary = summary([o for o in placed if o.created_at >= today],
+                            [o for o in done if paid_at(o) >= today])
+    today_summary["in_progress"] = db.query(func.count(Order.id)).filter(Order.status.notin_(CLOSED)).scalar()
+    return {
+        "days": days,
+        "today": today_summary,
+        "period": summary(placed, done),
+        "daily": [{"date": d.isoformat(), "cash": cash_by_day[d], "orders": orders_by_day[d]} for d in labels],
+        "top_items": top,
+        "hours": hours,  # orders placed (not cancelled) per IST hour, 0-23
     }
 
 

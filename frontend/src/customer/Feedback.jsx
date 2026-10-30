@@ -10,7 +10,7 @@ function Stars({ value, onChange, label }) {
       {[1, 2, 3, 4, 5].map((n) => (
         <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} star${n > 1 ? "s" : ""}`}
           onClick={() => onChange(n)}
-          className={`press h-11 w-11 text-3xl leading-none ${n <= value ? "text-[#facc15]" : "text-muted opacity-40"}`}>
+          className={`press h-11 w-11 text-3xl leading-none ${n <= value ? "text-star" : "text-muted opacity-40"}`}>
           ★
         </button>
       ))}

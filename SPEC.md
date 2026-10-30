@@ -49,16 +49,16 @@ Momos and Fries have half / full size options. Exact items and prices come from 
 
 ## 6. Admin features (v1)
 
-1. **Live order queue** — new order appears instantly (WebSocket push) with sound + visual alert. Dashboard (phone-first, bottom tabs Orders / Menu / Reviews): an **Open / Paused** switch (paused = the server refuses new orders, customers see a banner), sound mute, three numbers — **Cash collected** (Done orders only: Done = handed over and paid), **Orders today**, **Still to collect** (unfinished orders) — an out-of-stock warning, New / Preparing / Ready filters, and orders not yet ready turn amber after 10 min and red after 20.
+1. **Live order queue** — new order appears instantly (WebSocket push) with sound + visual alert. Dashboard (phone-first, bottom tabs Orders / Menu / Today / Reviews): an **Open / Paused** switch (paused = the server refuses new orders, customers see a banner), sound mute, three numbers — **Cash collected** (Done orders only: Done = handed over and paid), **Orders today**, **Still to collect** (unfinished orders) — an out-of-stock warning, New / Preparing / Ready filters, and orders not yet ready turn amber after 10 min and red after 20.
 2. **Status buttons** — move order through Preparing / Ready / Completed. A Ready order the customer never picks up is closed with **Not collected** (owner only; no cash counted; the customer sees "Not collected" but isn't notified).
 3. **Order list** — customer email (full for the owner, masked for customers), items, time placed.
 4. **Stock toggle** — mark any item out of stock / back in stock. Reflects on customer menu immediately.
 5. **Menu editing** — add items (name, category, price, optional half price, in stock), edit them, remove them (hidden, restorable — past orders keep them) and delete items that were never ordered. Live on every customer's menu. This is how the real menu gets in: production starts with an empty menu.
-6. **Feedback (read-only)** — average stars per product and the latest reviews, marked public/private.
+6. **Today tab** — today's summary (cash, orders done, average order, placed, in progress, cancelled, not collected), then the last 7 or 30 days: cash, orders, average, cash per day, the 5 best sellers (half/full split) and the busiest hours.
+7. **Feedback (read-only)** — average stars per product and the latest reviews, marked public/private.
 
 ## 7. Admin features (v2)
 
-- Daily summary: total orders, revenue, top-selling items
 - Customer list sorted by order frequency (regulars)
 - Pick reviews to show on the website (only ones the customer allowed) and display them
 

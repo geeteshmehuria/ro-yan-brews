@@ -10,6 +10,7 @@ export default function FeedbackSection({ alwaysOpen = false }) {
   const [open, setOpen] = useState(alwaysOpen);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [lowOnly, setLowOnly] = useState(false); // only 1–2★ reviews: what to fix first
 
   useEffect(() => {
     if (alwaysOpen) api("/api/admin/feedback").then(setData).catch((e) => setErr(e.message));
@@ -47,16 +48,30 @@ export default function FeedbackSection({ alwaysOpen = false }) {
               {data.items.map((i) => (
                 <div key={i.menu_item_id} className="flex justify-between border-b border-[var(--stroke)] py-2 last:border-0">
                   <b>{i.name}</b>
-                  <span><b className="text-[#facc15]">★ {i.average}</b> <small className="text-muted">({i.count})</small></span>
+                  <span><b className="text-star">★ {i.average}</b> <small className="text-muted">({i.count})</small></span>
                 </div>
               ))}
             </div>
           )}
-          {data && data.recent.map((f) => (
+          {data && data.recent.length > 0 && (
+            <div className="mb-2.5 flex gap-1.5" role="tablist" aria-label="Filter reviews">
+              {[[false, `All ${data.recent.length}`], [true, `Low 1–2★ ${data.recent.filter((f) => f.rating <= 2).length}`]].map(([low, label]) => (
+                <button key={label} role="tab" aria-selected={lowOnly === low} onClick={() => setLowOnly(low)}
+                  className={`press rounded-full border px-3.5 py-2 text-sm font-bold ${
+                    lowOnly === low ? "border-transparent bg-accent text-bg1" : "border-[var(--stroke)] text-muted"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {data && lowOnly && data.recent.every((f) => f.rating > 2) && (
+            <p className="glass p-5 text-center text-muted">No low ratings 🎉</p>
+          )}
+          {data && data.recent.filter((f) => !lowOnly || f.rating <= 2).map((f) => (
             <div key={f.id} className="glass mb-2.5 p-4">
               <div className="flex items-baseline justify-between gap-3">
                 <b>{f.item}</b>
-                <span className="whitespace-nowrap text-[#facc15]" aria-label={`${f.rating} of 5 stars`}>{stars(f.rating)}</span>
+                <span className="whitespace-nowrap text-star" aria-label={`${f.rating} of 5 stars`}>{stars(f.rating)}</span>
               </div>
               {f.comment && <p className="mt-1">“{f.comment}”</p>}
               <div className="mt-1 text-xs text-muted">

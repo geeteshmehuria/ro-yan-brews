@@ -8,6 +8,7 @@ import { MUTE_KEY, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import FeedbackSection from "./FeedbackSection.jsx";
 import MenuSection from "./MenuSection.jsx";
+import TodaySection from "./TodaySection.jsx";
 import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDetail.jsx";
 import { disablePush, enablePush } from "../push.js";
 
@@ -56,6 +57,7 @@ function OrderCard({ order, now, setStatus, open }) {
 const TABS = [
   { id: "orders", label: "Orders", icon: "🧾" },
   { id: "menu", label: "Menu", icon: "🍔" },
+  { id: "today", label: "Today", icon: "📊" },
   { id: "reviews", label: "Reviews", icon: "⭐" },
 ];
 
@@ -285,6 +287,7 @@ export default function AdminApp() {
 
       {/* stays mounted on other tabs: its live data and a pending Undo survive a tab switch */}
       <MenuSection visible={tab === "menu"} filter={menuFilter} setFilter={setMenuFilter} />
+      {tab === "today" && <TodaySection />}
       {tab === "reviews" && <FeedbackSection alwaysOpen />}
 
       <nav aria-label="Admin sections"
