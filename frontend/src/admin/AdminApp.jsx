@@ -125,7 +125,7 @@ export default function AdminApp() {
 
   return (
     <div className="screen-in px-3 pb-12">
-      <header className="glass sticky top-2 z-40 mt-3 flex items-center justify-between px-4 py-3">
+      <header className="glass sticky top-[calc(var(--sat)+0.5rem)] z-40 mt-3 flex items-center justify-between px-4 py-3">
         <div className="text-lg font-black">RO-YAN <span className="text-accent">ADMIN</span></div>
         <button onClick={handleLogout}
           className="glass-strong press rounded-xl px-3 py-1.5 text-xs font-bold">Log out</button>

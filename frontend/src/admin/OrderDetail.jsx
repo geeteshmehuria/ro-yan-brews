@@ -75,7 +75,7 @@ export default function OrderDetail({ order, now, setStatus, onClose }) {
       onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={`Order #${order.order_number}`}
         onClick={(e) => e.stopPropagation()}
-        className="screen-in max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-glass border border-[var(--stroke)] p-5 md:rounded-glass"
+        className="screen-in max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-glass border border-[var(--stroke)] p-5 pb-[calc(var(--sab)+1.25rem)] md:rounded-glass"
         style={{ background: "var(--bg2)" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -154,7 +154,7 @@ export default function MenuSection() {
       )}
 
       {undo && (
-        <div role="status" className="fixed bottom-4 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[488px] -translate-x-1/2 items-center justify-between gap-3 rounded-glass border border-[var(--stroke)] px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
+        <div role="status" className="fixed bottom-[calc(var(--sab)+1rem)] left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[488px] -translate-x-1/2 items-center justify-between gap-3 rounded-glass border border-[var(--stroke)] px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
           style={{ background: "var(--bg2)" }}>
           <span className="text-sm"><b>{undo.name}</b> removed from the menu</span>
           <button onClick={() => restore(undo)} className="press rounded-lg bg-accent px-4 py-2 text-sm font-black text-bg1">Undo</button>

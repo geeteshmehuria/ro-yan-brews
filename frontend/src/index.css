@@ -16,6 +16,11 @@
   --danger: #f87171;
   --radius: 18px;
   --blur: 18px;
+  /* Edge-to-edge: the page runs under the status bar and the navigation bar (viewport-fit=cover),
+     so content keeps clear of them with these. Capacitor injects --safe-area-inset-* in the
+     Android app; browsers fall back to env(). Both are 0 on a normal desktop browser. */
+  --sat: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --sab: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
 }
 
 * { -webkit-tap-highlight-color: transparent; }
@@ -29,7 +34,14 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
 }
-#root { max-width: 520px; margin: 0 auto; min-height: 100vh; }
+#root { max-width: 520px; margin: 0 auto; min-height: 100vh; padding-top: var(--sat); padding-bottom: var(--sab); }
+
+/* Frosted strip behind the status bar, so its icons stay readable over scrolled content. */
+body::before {
+  content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--sat); z-index: 45;
+  background: rgba(10, 20, 32, 0.45); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  pointer-events: none;
+}
 
 /* ============ glass primitives ============ */
 .glass {

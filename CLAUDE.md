@@ -72,6 +72,8 @@ Because the manager is in-process, **this only works on a single backend instanc
 
 **Styling is token-driven.** All colors come from the Ocean theme CSS variables in `frontend/src/index.css`; `tailwind.config.js` maps Tailwind color names (`bg1`, `accent`, `ink`, etc.) onto those vars. Change the theme in one place (the CSS `:root`), not in component classes.
 
+**Edge-to-edge (transparent status/navigation bars).** `index.html` has `viewport-fit=cover` and `capacitor.config.json` sets `SystemBars` (`style: "DARK"` = light bar icons), so the page draws under both system bars in the Android app (and under notches in mobile browsers). `--sat` / `--sab` in `index.css` are the top/bottom bar heights (Capacitor's injected `--safe-area-inset-*`, else `env()`; 0 on desktop). `#root` is padded by them and a frosted strip sits behind the status bar. **Anything pinned to an edge must add them**: sticky headers `top-[calc(var(--sat)+0.5rem)]`, bottom bars/toasts `bottom-[calc(var(--sab)+…)]`, bottom sheets `pb-[calc(var(--sab)+1.25rem)]`. Removing `viewport-fit=cover` brings back Capacitor's plain grey bars.
+
 ## Gotchas
 
 - `ui-prototype-v2.html` is not part of the app — it is only kept as the visual reference for the chosen Ocean look.

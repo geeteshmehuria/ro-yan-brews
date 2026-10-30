@@ -58,7 +58,7 @@ export default function FeedbackSheet({ order, prompt = false, onDone, onClose }
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Rate your food" onClick={(e) => e.stopPropagation()}
-        className="screen-in max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-glass border border-[var(--stroke)] p-5 md:rounded-glass"
+        className="screen-in max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-glass border border-[var(--stroke)] p-5 pb-[calc(var(--sab)+1.25rem)] md:rounded-glass"
         style={{ background: "var(--bg2)" }}>
         <div className="flex items-start justify-between gap-3">
           <div>

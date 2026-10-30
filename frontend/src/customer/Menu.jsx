@@ -5,7 +5,7 @@ import { useReveal } from "../useReveal.js";
 
 function Header({ activeCount, openOrders, openProfile }) {
   return (
-    <header className="glass sticky top-2 z-40 mx-3 mt-3 flex items-center justify-between px-4 py-3">
+    <header className="glass sticky top-[calc(var(--sat)+0.5rem)] z-40 mx-3 mt-3 flex items-center justify-between px-4 py-3">
       <div className="text-lg font-black tracking-wide">
         RO-YAN <span className="text-accent">BREWS</span>
       </div>
@@ -58,7 +58,7 @@ function Hero() {
 
 function Chips({ menu, active, setActive }) {
   return (
-    <div className="sticky top-0 z-30 flex gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none]"
+    <div className="sticky top-[var(--sat)] z-30 flex gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none]"
       style={{ background: "linear-gradient(180deg, rgba(10,20,32,0.88), transparent)" }}>
       {menu.map((g) => (
         <button key={g.category}
@@ -171,8 +171,8 @@ export default function MenuScreen({ menu, error, retry, cart, totals, sizeOf, s
       )}
       {/* floating cart bar */}
       <div onClick={totals.count ? openCart : undefined}
-        className={`cartbar-anim fixed bottom-3.5 left-1/2 z-50 flex w-[calc(100%-1.75rem)] max-w-[492px] -translate-x-1/2 cursor-pointer items-center justify-between rounded-glass border border-[var(--stroke)] px-4 py-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl ${
-          totals.count ? "translate-y-0" : "translate-y-[140%]"
+        className={`cartbar-anim fixed bottom-[calc(var(--sab)+0.875rem)] left-1/2 z-50 flex w-[calc(100%-1.75rem)] max-w-[492px] -translate-x-1/2 cursor-pointer items-center justify-between rounded-glass border border-[var(--stroke)] px-4 py-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl ${
+          totals.count ? "translate-y-0" : "translate-y-[calc(100%+var(--sab)+1.5rem)]"
         }`}
         style={{ background: "rgba(10, 20, 32, 0.75)" }}>
         <div>

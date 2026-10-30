@@ -70,7 +70,7 @@ export default function MenuItemForm({ item, categories, onSave, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label={item ? "Edit item" : "Add item"} onClick={(e) => e.stopPropagation()}
-        className="screen-in max-h-[92vh] w-full max-w-[520px] overflow-y-auto rounded-t-glass border border-[var(--stroke)] p-5 md:rounded-glass"
+        className="screen-in max-h-[92vh] w-full max-w-[520px] overflow-y-auto rounded-t-glass border border-[var(--stroke)] p-5 pb-[calc(var(--sab)+1.25rem)] md:rounded-glass"
         style={{ background: "var(--bg2)" }}>
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-black">{item ? "Edit item" : "Add a menu item"}</h2>
