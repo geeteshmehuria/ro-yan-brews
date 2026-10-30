@@ -37,6 +37,7 @@ Momos and Fries have half / full size options. Exact items and prices come from 
 4. **Confirmation** — order number + estimated ready time.
 5. **Order status** — Placed → Preparing → Ready → Completed (or Cancelled). Always visible: a banner on the menu and a "My orders" screen (last 20 orders), live over one WebSocket. Customer can cancel while Placed; a note field takes special instructions; the device beeps/vibrates and an email is sent when the order is Ready.
 6. **Out-of-stock handling** — item greyed out on menu when admin marks it unavailable.
+7. **Product feedback** — after collecting an order, rate each product 1–5 stars with an optional comment (once per order), with a checkbox to allow showing it on the website. Asked once when the order is marked Done; also a "Rate your food" button on completed orders. Only collected orders can be rated. **Showing reviews on the site is v2** (needs the customer's consent *and* the owner's pick).
 
 ## 5. Customer features (v2 — do NOT build in v1)
 
@@ -50,11 +51,13 @@ Momos and Fries have half / full size options. Exact items and prices come from 
 2. **Status buttons** — move order through Preparing / Ready / Completed.
 3. **Order list** — customer email (full for the owner, masked for customers), items, time placed.
 4. **Stock toggle** — mark any item out of stock / back in stock. Reflects on customer menu immediately.
+5. **Feedback (read-only)** — average stars per product and the latest reviews, marked public/private.
 
 ## 7. Admin features (v2)
 
 - Daily summary: total orders, revenue, top-selling items
 - Customer list sorted by order frequency (regulars)
+- Pick reviews to show on the website (only ones the customer allowed) and display them
 
 ## 8. Design requirements (for the UI session later)
 
