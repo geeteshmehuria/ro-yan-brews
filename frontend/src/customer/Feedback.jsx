@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { api } from "../api.js";
+import { useBackButton } from "../backButton.js";
 import { BigButton } from "../ui.jsx";
 
 function Stars({ value, onChange, label }) {
@@ -27,6 +28,8 @@ export default function FeedbackSheet({ order, prompt = false, onDone, onClose }
   const [allowPublic, setAllowPublic] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+
+  useBackButton(onClose); // Android Back closes this panel, not the app
 
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();

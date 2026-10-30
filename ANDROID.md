@@ -1,8 +1,10 @@
-# Ro-Yan Admin — Android app
+# Ro-Yan — Android app
 
-The owner's app. Customers keep using the website; this app is the admin dashboard only.
-It is built with **Capacitor**: the same React admin screens as the website, wrapped in a
-real Android app. Phase status:
+One app for everyone, like the website: **customers** log in and get the menu, cart and
+their orders; the **owner's** login (`ADMIN_EMAIL`) opens the dashboard. It is built with
+**Capacitor**: the same React screens as the website, wrapped in a real Android app.
+Android's **Back** closes what's open (a panel, the cart, the code screen); on the main screen
+it leaves the app. Phase status:
 
 | Phase | What | Status |
 |---|---|---|
@@ -78,7 +80,7 @@ load can take up to a minute while the free Render backend wakes up.)
 |---|---|
 | Phone not in the device list | Other cable/port; on the phone pull down the USB notification → **File transfer**; turn USB debugging off and on |
 | App opens but login says "Something went wrong" / nothing loads | Render → royan-api → Environment: `CORS_ORIGINS` must be `https://ro-yan-brews.vercel.app,https://localhost` (then redeploy). Or the backend is still waking up — wait a minute |
-| "This app is only for the stall owner" | You logged in with a customer email. Use the `ADMIN_EMAIL` one |
+| You get the menu instead of the dashboard | You logged in with a customer email. Log out (👤 → Log out) and use the `ADMIN_EMAIL` one |
 | No Google button | On purpose: Google blocks its sign-in inside apps. Use the email code |
 | Build fails (red text in Android Studio) | Send a screenshot of the error |
 
@@ -115,7 +117,10 @@ place an order from the website → "New order #N · ₹…" with sound.
 | Still nothing | Neon: `SELECT * FROM t_log WHERE path = 'push' ORDER BY id DESC LIMIT 5;` shows FCM's error. `SELECT count(*) FROM push_tokens;` = 0 means the phone never registered (missing `google-services.json`, or permission denied) |
 
 ### How the app differs from the website
-- Opens straight to the **owner login**; customer accounts are refused.
-- **No Google sign-in** (email code only).
+- **No Google sign-in** (email code only) — a customer who signed up with Google logs in
+  with an emailed code to the same address and keeps their orders.
+- **Back button** closes panels and screens before it leaves the app.
+- **Order alerts when the app is closed are for the owner only** (push notifications).
+  Customers get the live status while the app is open, and the "order ready" email.
 - Talks to the same live backend (`https://royan-api.onrender.com`), so orders are the same as on `/admin`.
 - **Website changes go live by themselves; app changes need a rebuild** (`npm run build:android` → ▶ Run).

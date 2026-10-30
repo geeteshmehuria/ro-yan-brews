@@ -7,8 +7,8 @@ android {
         applicationId "com.royanbrews.admin"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 6  // bump on every APK you install: phones (vivo especially) cache the icon/name per version
-        versionName "1.5"
+        versionCode 7  // bump on every APK you install: phones (vivo especially) cache the icon/name per version
+        versionName "1.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

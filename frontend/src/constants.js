@@ -4,6 +4,9 @@ export const LABELS = { placed: "Placed", preparing: "Preparing", ready: "Ready"
 // Orders that are finished one way or the other (no more status changes coming).
 export const isActive = (order) => order.status !== "completed" && order.status !== "cancelled";
 export const ICONS = { Shakes: "🥤", Burgers: "🍔", Sandwiches: "🥪", Momos: "🥟", Fries: "🍟" };
+// Built as the Android app (npm run build:android, .env.android)? Google sign-in is hidden
+// there: Google blocks it inside an app's web view.
+export const IN_APP = import.meta.env.VITE_APP_TARGET === "app";
 export const TOKEN_KEY = "session_token";
 export const CART_KEY = "royan_cart";
 export const PUSH_KEY = "royan_push_token"; // the Android app's FCM token, unregistered on logout

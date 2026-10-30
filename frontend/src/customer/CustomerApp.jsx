@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 import { api, getSession, getToken, logout } from "../api.js";
 import { beep, flashTitle } from "../alerts.js";
-import { CART_KEY, isActive } from "../constants.js";
+import { useBackButton } from "../backButton.js";
+import { CART_KEY, IN_APP, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import { CartScreen } from "./Checkout.jsx";
 import FeedbackSheet from "./Feedback.jsx";
@@ -136,6 +137,9 @@ export default function CustomerApp() {
     };
   }, [cart]);
 
+  // Android Back: cart / orders / profile go back to the menu (the menu itself leaves the app).
+  useBackButton(() => setScreen("menu"), ["cart", "orders", "profile"].includes(screen));
+
   const onLoggedIn = ({ is_admin }) => {
     if (is_admin) navigate("/admin", { replace: true });
     else setScreen("menu");
@@ -164,7 +168,7 @@ export default function CustomerApp() {
 
   return (
     <>
-      {screen === "login" && <Login onDone={onLoggedIn} />}
+      {screen === "login" && <Login onDone={onLoggedIn} allowGoogle={!IN_APP} />}
       {screen === "menu" && (
         <MenuScreen menu={menu} error={error} retry={loadMenu} cart={cart} totals={totals}
           sizeOf={sizeOf} setSizes={setSizes} changeQty={changeQty}
