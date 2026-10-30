@@ -8,8 +8,10 @@ import { MUTE_KEY, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import FeedbackSection from "./FeedbackSection.jsx";
 import MenuSection from "./MenuSection.jsx";
+import TodaySection from "./TodaySection.jsx";
 import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDetail.jsx";
 import { disablePush, enablePush } from "../push.js";
+import { ask, tell } from "../dialog.jsx";
 
 // Orders not yet ready turn amber after 10 minutes and red after 20.
 const WAIT_AMBER = 10, WAIT_RED = 20;
@@ -56,6 +58,7 @@ function OrderCard({ order, now, setStatus, open }) {
 const TABS = [
   { id: "orders", label: "Orders", icon: "🧾" },
   { id: "menu", label: "Menu", icon: "🍔" },
+  { id: "today", label: "Today", icon: "📊" },
   { id: "reviews", label: "Reviews", icon: "⭐" },
 ];
 
@@ -163,7 +166,7 @@ export default function AdminApp() {
     try {
       await api(`/api/admin/orders/${order.id}/status`, { method: "PATCH", body: { status } });
       setOrders((os) => os.map((o) => (o.id === order.id ? { ...o, status, fresh: false } : o)));
-    } catch (e) { alert(e.message); }
+    } catch (e) { tell(e.message); }
   };
 
   // Kitchen order: active ones oldest first (next to make on top); finished ones folded below, newest first.
@@ -183,12 +186,14 @@ export default function AdminApp() {
   };
 
   const toggleStore = async () => {
-    if (accepting && !window.confirm("Pause new orders? Customers will see “We're not taking orders right now”. Orders already placed carry on.")) return;
+    if (accepting && !await ask({ title: "Pause new orders?",
+      message: "Customers will see “We're not taking orders right now”. Orders already placed carry on.",
+      confirmLabel: "Pause orders", cancelLabel: "Keep open", tone: "warn" })) return;
     setStoreBusy(true);
     try {
       const r = await api("/api/admin/store", { method: "PATCH", body: { accepting_orders: !accepting } });
       setStats((st) => st && { ...st, accepting_orders: r.accepting_orders });
-    } catch (e) { alert(e.message); }
+    } catch (e) { tell(e.message); }
     setStoreBusy(false);
   };
 
@@ -285,6 +290,7 @@ export default function AdminApp() {
 
       {/* stays mounted on other tabs: its live data and a pending Undo survive a tab switch */}
       <MenuSection visible={tab === "menu"} filter={menuFilter} setFilter={setMenuFilter} />
+      {tab === "today" && <TodaySection />}
       {tab === "reviews" && <FeedbackSection alwaysOpen />}
 
       <nav aria-label="Admin sections"

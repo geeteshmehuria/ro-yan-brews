@@ -26,10 +26,16 @@ def add_missing_columns(bind) -> None:
             if not insp.has_table(table.name):
                 continue
             have = {c["name"] for c in insp.get_columns(table.name)}
+            added = set()
             for col in table.columns:
                 if col.name not in have and col.nullable:
                     conn.execute(text(
                         f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col.type.compile(bind.dialect)}"))
+                    added.add(col.name)
+            # ...and the indexes on those columns (ADD COLUMN doesn't create them)
+            for index in table.indexes:
+                if added & {c.name for c in index.columns}:
+                    index.create(conn, checkfirst=True)
 
 
 def get_db():

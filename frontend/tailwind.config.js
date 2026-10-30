@@ -14,6 +14,7 @@ export default {
         "danger-soft": "var(--danger-soft)",
         warn: "var(--warn)",
         "warn-soft": "var(--warn-soft)",
+        star: "var(--star)",
       },
       borderRadius: { glass: "var(--radius)" },
     },

@@ -17,6 +17,7 @@
   --danger-soft: rgba(248, 113, 113, 0.12); /* tinted background behind danger text (paused banners) */
   --warn: #f59e0b;                          /* "needs attention": waiting orders, out-of-stock */
   --warn-soft: rgba(245, 158, 11, 0.1);
+  --star: #facc15;                          /* rating stars */
   --radius: 18px;
   --blur: 18px;
   /* Edge-to-edge: the page runs under the status bar and the navigation bar (viewport-fit=cover),

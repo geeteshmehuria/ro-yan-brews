@@ -13,6 +13,7 @@ import { Login } from "./Login.jsx";
 import MenuScreen from "./Menu.jsx";
 import OrdersScreen from "./Orders.jsx";
 import ProfileScreen from "./Profile.jsx";
+import { tell } from "../dialog.jsx";
 
 const priceOf = (item, size) => (size === "half" ? item.price_half : item.price_full);
 
@@ -198,7 +199,7 @@ export default function CustomerApp() {
   const cancelOrder = async (id) => {
     try {
       await api(`/api/orders/${id}/cancel`, { method: "POST" });
-    } catch (e) { alert(e.message); }
+    } catch (e) { tell(e.message); }
     loadOrders();  // the server is the source of truth either way
   };
 

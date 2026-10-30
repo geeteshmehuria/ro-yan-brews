@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import { useBackButton } from "../backButton.js";
 import { LABELS, STATUSES, isActive } from "../constants.js";
+import { ask } from "../dialog.jsx";
 
 const SIZE_LABELS = { half: "Half", full: "Full" };
 
@@ -51,14 +52,17 @@ export function StatusActions({ order, setStatus, big = false }) {
         </button>
       ))}
       {isActive(order) && order.status !== "ready" && (
-        <button onClick={() => window.confirm("Cancel this order?") && setStatus(order, "cancelled")}
+        <button onClick={async () => await ask({ title: `Cancel order #${order.order_number}?`,
+          message: "The customer is told the stall couldn't make it.",
+          confirmLabel: "Cancel order", cancelLabel: "Keep it", tone: "danger" }) && setStatus(order, "cancelled")}
           className={`press rounded-lg border border-[var(--stroke)] font-bold text-danger ${size}`}>
           Cancel
         </button>
       )}
       {order.status === "ready" && (
-        <button onClick={() => window.confirm(`Mark order #${order.order_number} as not collected? It closes without counting any cash. The customer isn't notified.`)
-          && setStatus(order, "not_collected")}
+        <button onClick={async () => await ask({ title: `Order #${order.order_number} not collected?`,
+          message: "It closes without counting any cash. The customer isn't notified.",
+          confirmLabel: "Not collected", cancelLabel: "Back", tone: "warn" }) && setStatus(order, "not_collected")}
           className={`press rounded-lg border border-[var(--stroke)] font-bold text-warn ${size}`}>
           Not collected
         </button>
