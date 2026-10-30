@@ -33,7 +33,8 @@ export async function enablePush() {
   }
 }
 
-// Call before logout (needs the session token): this phone stops getting order alerts.
+// Call before logout (it sends the session token): this phone stops getting order alerts.
+// Callers needn't await it — the request is on its way once this returns.
 export async function disablePush() {
   const token = localStorage.getItem(PUSH_KEY);
   if (!token) return;
