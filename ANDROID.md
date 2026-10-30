@@ -58,7 +58,8 @@ Already cloned? `git pull` in `ro-yan-brews`, then `npm install` in `frontend`.
 ```
 npm run android
 ```
-This builds the admin app (`vite build --mode android`), copies it into the Android project
+This builds the admin app (`vite build --mode android` into `frontend/dist-android` — kept apart
+from the website's `dist`, so a website build can never end up in the app), copies it into the Android project
 (`cap sync`) and opens `frontend\android` in Android Studio. Wait for Gradle to finish.
 
 **3. Run:** pick your iQOO at the top → green **▶ Run**. "Ro-Yan Admin" opens on the phone.
@@ -68,7 +69,7 @@ load can take up to a minute while the free Render backend wakes up.)
 
 **Changed some code?** Run `npm run build:android`, then **▶ Run** again in Android Studio.
 
-> 🎓 Capacitor puts your built website (`frontend/dist`) inside the app and shows it in a
+> 🎓 Capacitor puts your built admin site (`frontend/dist-android`) inside the app and shows it in a
 > full-screen browser view; the app's address is `https://localhost`. That's why the backend's
 > `CORS_ORIGINS` lists `https://localhost` — without it the app can't load any data.
 
