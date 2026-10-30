@@ -80,7 +80,7 @@ def current_customer(request: Request) -> dict:
 def require_admin(request: Request) -> dict:
     session = current_customer(request)
     if not is_admin_email(session.get("email", "")):
-        raise HTTPException(401, "Admin access only")
+        raise HTTPException(403, "Admin access only")
     return session
 
 

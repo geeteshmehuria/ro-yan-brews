@@ -152,6 +152,9 @@ def notify_ready(order_number: int, email: str, name: Optional[str]) -> None:
         request_log.record("TASK", "notify_ready", error=request_log.describe(exc))
 
 
+MAX_ACTIVE_ORDERS = 3  # per customer: cash on pickup makes prank orders free, so cap the damage
+
+
 # ---------------- public ----------------
 
 @app.get("/api/health")
@@ -258,6 +261,11 @@ def update_me(body: ProfileIn, request: Request, db: Session = Depends(get_db)) 
 @app.post("/api/orders", status_code=201)
 async def create_order(body: OrderIn, request: Request, db: Session = Depends(get_db)) -> dict:
     session = auth.current_customer(request)
+    active = db.query(func.count(Order.id)).filter(
+        Order.customer_id == session["cid"], Order.status.notin_(["completed", CANCELLED])).scalar()
+    if active >= MAX_ACTIVE_ORDERS:
+        raise HTTPException(429, f"You already have {active} orders in progress — "
+                                 "please collect them before ordering more")
     total = 0
     lines = []
     for line in body.items:
