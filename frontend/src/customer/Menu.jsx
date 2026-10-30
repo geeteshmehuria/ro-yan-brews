@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { ICONS, LABELS } from "../constants.js";
+import { ICONS, LABELS, MAX_QTY } from "../constants.js";
 import { useReveal } from "../useReveal.js";
 
 function Header({ activeCount, openOrders, openProfile }) {
@@ -104,9 +104,10 @@ function ItemCard({ item, size, setSize, qty, changeQty }) {
       </div>
       {item.is_available && (qty > 0 ? (
         <div className="glass-strong flex flex-none items-center overflow-hidden !rounded-xl border !border-accent">
-          <button onClick={() => changeQty(-1)} className="h-11 w-10 text-xl font-extrabold text-accent">−</button>
+          <button onClick={() => changeQty(-1)} aria-label={`One less ${item.name}`} className="h-11 w-10 text-xl font-extrabold text-accent">−</button>
           <div className="w-9 text-center text-lg font-extrabold">{qty}</div>
-          <button onClick={() => changeQty(1)} className="h-11 w-10 text-xl font-extrabold text-accent">+</button>
+          <button onClick={() => changeQty(1)} disabled={qty >= MAX_QTY} aria-label={`One more ${item.name}`}
+            className="h-11 w-10 text-xl font-extrabold text-accent disabled:opacity-30">+</button>
         </div>
       ) : (
         <button onClick={() => changeQty(1)}

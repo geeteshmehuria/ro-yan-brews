@@ -5,7 +5,7 @@ import { api, getSession, getToken, logout } from "../api.js";
 import { beep, flashTitle } from "../alerts.js";
 import { useBackButton } from "../backButton.js";
 import { disablePush, enablePush } from "../push.js";
-import { CART_KEY, IN_APP, isActive } from "../constants.js";
+import { CART_KEY, IN_APP, MAX_QTY, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import { CartScreen } from "./Checkout.jsx";
 import FeedbackSheet from "./Feedback.jsx";
@@ -134,13 +134,28 @@ export default function CustomerApp() {
     const key = `${item.id}_${size}`;
     setCart((c) => {
       const line = c[key] || { id: item.id, name: item.name, size, hasHalf: item.price_half != null, price: priceOf(item, size), qty: 0 };
-      const qty = line.qty + delta;
+      const qty = Math.min(line.qty + delta, MAX_QTY);
       const next = { ...c };
       if (qty <= 0) delete next[key];
       else next[key] = { ...line, qty };
       return next;
     });
   };
+
+  // From the cart screen: change a line's quantity (down to 0 removes it), or remove it.
+  const changeLine = (key, delta) => setCart((c) => {
+    if (!c[key]) return c;
+    const qty = Math.min(c[key].qty + delta, MAX_QTY);
+    const next = { ...c };
+    if (qty <= 0) delete next[key];
+    else next[key] = { ...c[key], qty };
+    return next;
+  });
+  const removeLine = (key) => setCart((c) => {
+    const next = { ...c };
+    delete next[key];
+    return next;
+  });
 
   const totals = useMemo(() => {
     const lines = Object.values(cart);
@@ -190,7 +205,8 @@ export default function CustomerApp() {
           openProfile={() => setScreen("profile")} openCart={() => setScreen("cart")} />
       )}
       {screen === "cart" && (
-        <CartScreen totals={totals} back={() => setScreen("menu")} placeOrder={placeOrder} />
+        <CartScreen totals={totals} back={() => setScreen("menu")} placeOrder={placeOrder}
+          changeLine={changeLine} removeLine={removeLine} />
       )}
       {screen === "orders" && (
         <OrdersScreen orders={orders} cancel={cancelOrder} rate={(o) => setRating({ id: o.id, prompt: false })}
