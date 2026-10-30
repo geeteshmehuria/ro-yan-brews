@@ -88,6 +88,7 @@ export default function CustomerApp() {
 
   // live stock updates (only once logged in)
   useSocket(loggedIn ? "/ws/menu" : null, (msg) => {
+    if (msg.type === "menu_changed") return loadMenu(); // owner added/edited/removed items; re-prices the cart
     if (msg.type !== "availability") return;
     setMenu((m) => m && m.map((g) => ({
       ...g,

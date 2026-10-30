@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 import { api, getSession, getToken, logout } from "../api.js";
 import { beep } from "../alerts.js";
-import { ICONS, isActive } from "../constants.js";
+import { isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import FeedbackSection from "./FeedbackSection.jsx";
+import MenuSection from "./MenuSection.jsx";
 import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDetail.jsx";
 import { disablePush, enablePush } from "./push.js";
 
@@ -48,7 +49,6 @@ export default function AdminApp() {
   const isAdmin = !!session?.is_admin;
 
   const [orders, setOrders] = useState([]);
-  const [menu, setMenu] = useState([]);
   const [stats, setStats] = useState(null);
   const [offline, setOffline] = useState(false);
   const [openId, setOpenId] = useState(null); // order shown in the detail panel (by id, so live updates show)
@@ -66,10 +66,8 @@ export default function AdminApp() {
   useEffect(() => { if (isAdmin) enablePush(); }, [isAdmin]);
 
   const load = useCallback(async () => {
-    const [o, m, s] = await Promise.all([
-      api("/api/admin/orders"), api("/api/menu"), api("/api/admin/stats/today"),
-    ]);
-    setOrders(o); setMenu(m); setStats(s);
+    const [o, s] = await Promise.all([api("/api/admin/orders"), api("/api/admin/stats/today")]);
+    setOrders(o); setStats(s);
   }, []);
 
   // Only a rejected session logs the owner out. A network error or a 502 while the
@@ -124,16 +122,6 @@ export default function AdminApp() {
     navigate("/", { replace: true });
   };
 
-  const toggleStock = async (item) => {
-    const r = await api(`/api/admin/menu/${item.id}/availability`, {
-      method: "PATCH", body: { is_available: !item.is_available },
-    });
-    setMenu((m) => m.map((g) => ({
-      ...g,
-      items: g.items.map((i) => (i.id === item.id ? { ...i, is_available: r.is_available } : i)),
-    })));
-  };
-
   return (
     <div className="screen-in px-3 pb-12">
       <header className="glass sticky top-2 z-40 mt-3 flex items-center justify-between px-4 py-3">
@@ -168,18 +156,7 @@ export default function AdminApp() {
 
       <FeedbackSection />
 
-      <h2 className="mb-2.5 mt-6 px-1 font-black text-accent">Menu stock</h2>
-      {menu.map((g) => g.items.map((item) => (
-        <div key={item.id} className="glass mb-2.5 flex items-center justify-between p-3.5">
-          <div><b>{item.name}</b><br /><small className="text-muted">{ICONS[g.category]} {g.category}</small></div>
-          <button onClick={() => toggleStock(item)}
-            className={`relative h-7 w-[52px] rounded-full border transition-colors ${
-              item.is_available ? "border-transparent bg-accent2" : "glass-strong border-[var(--stroke)]"
-            }`}>
-            <span className={`absolute top-[3px] h-5 w-5 rounded-full bg-white transition-all ${item.is_available ? "left-[27px]" : "left-[3px]"}`} />
-          </button>
-        </div>
-      )))}
+      <MenuSection />
 
       {openOrder && <OrderDetail order={openOrder} now={now} setStatus={setStatus} onClose={closeDetail} />}
     </div>

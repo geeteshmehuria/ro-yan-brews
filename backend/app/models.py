@@ -18,6 +18,9 @@ class MenuItem(Base):
     price_full = Column(Integer, nullable=False)
     is_available = Column(Boolean, default=True, nullable=False)
     sort_order = Column(Integer, default=0, nullable=False)
+    # Removed from the menu by the owner (NULL = on the menu). Items are hidden, never deleted
+    # once ordered: past orders and reviews point at them. Nullable so add_missing_columns adds it.
+    archived_at = Column(DateTime, nullable=True)
 
 
 class Customer(Base):
