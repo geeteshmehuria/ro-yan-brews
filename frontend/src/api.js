@@ -34,17 +34,28 @@ export function logout() {
   localStorage.removeItem(CART_KEY);
 }
 
+// A server that accepts the connection but never answers (e.g. Render mid-redeploy) would
+// otherwise leave the request — and the screen — waiting forever with no error to show.
+const TIMEOUT_MS = 30000;
+
 export async function api(path, { method = "GET", body, headers = {} } = {}) {
   const token = getToken();
-  const res = await fetch(API + path, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(API + path, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout?.(TIMEOUT_MS), // missing before Safari 16: then no timeout, not a crash
+    });
+  } catch (e) {
+    if (e.name === "TimeoutError") throw new Error("The server is taking too long — please try again");
+    throw e;
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = typeof data.detail === "string" ? data.detail : "Something went wrong — please try again";
