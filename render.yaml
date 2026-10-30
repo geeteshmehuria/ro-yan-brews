@@ -36,6 +36,7 @@ services:
       - key: ENV
         value: production
       - key: CORS_ORIGINS
-        value: https://ro-yan-brews.vercel.app
+        # the website, and the owner's Android app (Capacitor serves it from https://localhost)
+        value: https://ro-yan-brews.vercel.app,https://localhost
       - key: GOOGLE_CLIENT_ID
         sync: false # Google sign-in is OFF unless this is set (the endpoint refuses without it)
