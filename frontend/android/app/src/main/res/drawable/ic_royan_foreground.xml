@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ro-Yan app icon: cold drink with a straw (Ocean theme colours). Scaled into the
+     adaptive-icon safe zone (launchers crop the outer third of the 108dp canvas). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.72" android:scaleY="0.72" android:translateY="1.5">
+        <path
+            android:pathData="M58,38 L63,23 L73,21"
+            android:strokeColor="#34D399"
+            android:strokeWidth="5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#38BDF8"
+            android:pathData="M39,45 H69 L65,80 Q64.5,84 60,84 H48 Q43.5,84 43,80 Z" />
+        <path
+            android:fillColor="#F4F1E8"
+            android:fillAlpha="0.35"
+            android:pathData="M41,58 Q47.5,54 54,58 T67,58 L66,66 Q60,62 54,66 T42,66 Z" />
+        <path
+            android:fillColor="#F4F1E8"
+            android:pathData="M39,37 H69 A4,4 0 0 1 69,45 H39 A4,4 0 0 1 39,37 Z" />
+    </group>
+</vector>

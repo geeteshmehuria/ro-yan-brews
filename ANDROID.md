@@ -62,7 +62,7 @@ This builds the admin app (`vite build --mode android` into `frontend/dist-andro
 from the website's `dist`, so a website build can never end up in the app), copies it into the Android project
 (`cap sync`) and opens `frontend\android` in Android Studio. Wait for Gradle to finish.
 
-**3. Run:** pick your iQOO at the top → green **▶ Run**. "Ro-Yan Admin" opens on the phone.
+**3. Run:** pick your iQOO at the top → green **▶ Run**. "Ro-Yan" (cold-drink icon) opens on the phone.
 
 **4. Log in** with the owner email → the code arrives by email → the dashboard. (The first
 load can take up to a minute while the free Render backend wakes up.)
@@ -110,8 +110,8 @@ place an order from the website → "New order #N · ₹…" with sound.
 
 | Problem | Fix |
 |---|---|
-| Never asked to allow notifications / no alerts | Settings → Apps → Ro-Yan Admin → Notifications → on (and the **Orders** category on, with sound) |
-| Alerts come late or only when the app is open | vivo/iQOO kill background apps: Settings → Apps → Ro-Yan Admin → **Battery → Allow background activity / Don't restrict**, and turn on **Autostart** |
+| Never asked to allow notifications / no alerts | Settings → Apps → Ro-Yan → Notifications → on (and the **Orders** category on, with sound) |
+| Alerts come late or only when the app is open | vivo/iQOO kill background apps: Settings → Apps → Ro-Yan → **Battery → Allow background activity / Don't restrict**, and turn on **Autostart** |
 | Still nothing | Neon: `SELECT * FROM t_log WHERE path = 'push' ORDER BY id DESC LIMIT 5;` shows FCM's error. `SELECT count(*) FROM push_tokens;` = 0 means the phone never registered (missing `google-services.json`, or permission denied) |
 
 ### How the app differs from the website
