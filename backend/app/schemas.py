@@ -118,6 +118,10 @@ class MenuItemIn(BaseModel):
         return self
 
 
+class StoreIn(BaseModel):
+    accepting_orders: bool
+
+
 class AvailabilityIn(BaseModel):
     is_available: bool
 

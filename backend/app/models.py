@@ -86,6 +86,13 @@ class OtpCode(Base):
     created_at = Column(DateTime, default=utcnow, nullable=False)
 
 
+class Setting(Base):
+    """Small owner-controlled switches, one row each (missing row = the default)."""
+    __tablename__ = "settings"
+    key = Column(String(40), primary_key=True)  # e.g. "accepting_orders"
+    value = Column(String(200), nullable=False)
+
+
 class PushToken(Base):
     """A phone with the Android app, registered for FCM pushes by whoever logged in last on it."""
     __tablename__ = "push_tokens"

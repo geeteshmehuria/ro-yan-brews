@@ -3,7 +3,7 @@ import { useState } from "react";
 import { MAX_QTY } from "../constants.js";
 import { Back, BigButton } from "../ui.jsx";
 
-export function CartScreen({ totals, back, placeOrder, changeLine, removeLine }) {
+export function CartScreen({ paused, totals, back, placeOrder, changeLine, removeLine }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -60,8 +60,9 @@ export function CartScreen({ totals, back, placeOrder, changeLine, removeLine })
             <span>Total</span><span>₹{totals.total}</span>
           </div>
           <p className="text-center text-sm text-muted">💵 Pay cash when you collect your order</p>
-          {err && <p className="mt-2 text-center text-sm text-danger">{err}</p>}
-          <BigButton onClick={submit} disabled={!totals.count || busy}>
+          {paused ? <p className="mt-2 text-center text-sm font-bold text-danger">⏸ {paused}</p>
+            : err && <p className="mt-2 text-center text-sm text-danger">{err}</p>}
+          <BigButton onClick={submit} disabled={!totals.count || busy || !!paused}>
             {busy ? "Placing order…" : "Place order"}
           </BigButton>
         </>

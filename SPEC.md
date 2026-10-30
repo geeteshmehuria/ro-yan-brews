@@ -49,7 +49,7 @@ Momos and Fries have half / full size options. Exact items and prices come from 
 
 ## 6. Admin features (v1)
 
-1. **Live order queue** — new order appears instantly (WebSocket push) with sound + visual alert.
+1. **Live order queue** — new order appears instantly (WebSocket push) with sound + visual alert. Dashboard (phone-first, bottom tabs Orders / Menu / Reviews): an **Open / Paused** switch (paused = the server refuses new orders, customers see a banner), sound mute, three numbers — **Cash collected** (Done orders only: Done = handed over and paid), **Orders today**, **Still to collect** (unfinished orders) — an out-of-stock warning, New / Preparing / Ready filters, and orders not yet ready turn amber after 10 min and red after 20.
 2. **Status buttons** — move order through Preparing / Ready / Completed.
 3. **Order list** — customer email (full for the owner, masked for customers), items, time placed.
 4. **Stock toggle** — mark any item out of stock / back in stock. Reflects on customer menu immediately.

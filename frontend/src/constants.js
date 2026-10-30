@@ -8,6 +8,7 @@ export const ICONS = { Shakes: "🥤", Burgers: "🍔", Sandwiches: "🥪", Momo
 // there: Google blocks it inside an app's web view.
 export const IN_APP = import.meta.env.VITE_APP_TARGET === "app";
 export const MAX_QTY = 50; // per cart line — the backend's OrderItemIn.qty limit
+export const MUTE_KEY = "royan_admin_muted"; // the owner's new-order sound, per device
 export const TOKEN_KEY = "session_token";
 export const CART_KEY = "royan_cart";
 export const PUSH_KEY = "royan_push_token"; // the Android app's FCM token, unregistered on logout

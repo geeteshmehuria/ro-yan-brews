@@ -294,7 +294,8 @@ def test_stats_today(client, login, make_item):
     admin = bearer(login(OWNER))
     place(client, login(), make_item("Oreo Shake", full=80))
     stats = client.get("/api/admin/stats/today", headers=admin).json()
-    assert stats == {"orders": 1, "revenue": 160, "top_item": "Oreo Shake"}
+    assert (stats["orders"], stats["top_item"]) == (1, "Oreo Shake")
+    assert (stats["cash_collected"], stats["to_collect"], stats["revenue"]) == (0, 160, 0)  # not paid yet
 
 
 # ---------------- websockets ----------------

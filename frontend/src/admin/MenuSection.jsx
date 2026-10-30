@@ -11,7 +11,8 @@ const price = (i) => (i.price_half != null ? `₹${i.price_half} / ₹${i.price_
 
 // The owner's menu: stock switch, add / edit / remove (hide) / restore, and delete for
 // items never ordered. Stays in sync across the owner's devices through /ws/menu.
-export default function MenuSection() {
+// `filter`: "all", or "out" = only items marked out of stock (the dashboard's warning opens this).
+export default function MenuSection({ filter = "all", setFilter = () => {} }) {
   const [items, setItems] = useState(null); // null = loading
   const [err, setErr] = useState("");
   const [form, setForm] = useState(null); // null = closed, {} = add, {item} = edit
@@ -86,24 +87,39 @@ export default function MenuSection() {
 
   const live = (items || []).filter((i) => !i.archived);
   const removed = (items || []).filter((i) => i.archived);
-  const categories = [...new Set(live.map((i) => i.category))];
+  const categories = [...new Set(live.map((i) => i.category))]; // all of them, for the add/edit form
+  const outCount = live.filter((i) => !i.is_available).length;
+  const onlyOut = filter === "out" && outCount > 0;
+  const listed = onlyOut ? live.filter((i) => !i.is_available) : live;
+  const listedCategories = [...new Set(listed.map((i) => i.category))];
 
   return (
     <>
-      <div className="mb-2.5 mt-6 flex items-center justify-between px-1">
+      <div className="mb-2.5 mt-5 flex items-center justify-between px-1">
         <h2 className="font-black text-accent">Menu{items ? ` (${live.length})` : ""}</h2>
         <button onClick={() => setForm({})}
           className="press rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-bg1">+ Add item</button>
       </div>
+      {outCount > 0 && (
+        <div className="mb-1 flex gap-1.5" role="tablist" aria-label="Filter menu">
+          {[["all", `All ${live.length}`], ["out", `Out of stock ${outCount}`]].map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={(id === "out") === onlyOut} onClick={() => setFilter(id)}
+              className={`press rounded-full border px-3.5 py-2 text-sm font-bold ${
+                (id === "out") === onlyOut ? "border-transparent bg-accent text-bg1" : "border-[var(--stroke)] text-muted"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {err && <p className="glass mb-2.5 p-4 text-center text-sm text-danger">{err}</p>}
       {items && live.length === 0 && (
         <p className="glass p-5 text-center text-muted">The menu is empty — tap “+ Add item” to add your first dish</p>
       )}
 
-      {categories.map((c) => (
+      {listedCategories.map((c) => (
         <div key={c}>
           <div className="mb-1.5 mt-4 px-1 text-sm font-black uppercase tracking-wider text-muted">{ICONS[c] || "🍽"} {c}</div>
-          {live.filter((i) => i.category === c).map((item) => (
+          {listed.filter((i) => i.category === c).map((item) => (
             <div key={item.id} className={`glass mb-2.5 p-3.5 ${item.is_available ? "" : "opacity-70"}`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -154,7 +170,7 @@ export default function MenuSection() {
       )}
 
       {undo && (
-        <div role="status" className="fixed bottom-[calc(var(--sab)+1rem)] left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[488px] -translate-x-1/2 items-center justify-between gap-3 rounded-glass border border-[var(--stroke)] px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
+        <div role="status" className="fixed bottom-[calc(var(--sab)+5.5rem)] left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[488px] -translate-x-1/2 items-center justify-between gap-3 rounded-glass border border-[var(--stroke)] px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.45)]"
           style={{ background: "var(--bg2)" }}>
           <span className="text-sm"><b>{undo.name}</b> removed from the menu</span>
           <button onClick={() => restore(undo)} className="press rounded-lg bg-accent px-4 py-2 text-sm font-black text-bg1">Undo</button>

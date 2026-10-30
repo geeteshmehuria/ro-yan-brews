@@ -123,7 +123,8 @@ def test_cancelled_orders_are_excluded_from_stats(client, login, make_item):
     oid = place(client, token, item).json()["id"]
     client.post(f"/api/orders/{oid}/cancel", headers=bearer(token))
     stats = client.get("/api/admin/stats/today", headers=bearer(owner)).json()
-    assert stats["orders"] == 1 and stats["revenue"] == 160
+    assert stats["orders"] == 1 and stats["cancelled"] == 1
+    assert stats["to_collect"] == 160 and stats["cash_collected"] == 0
 
 
 # ---------------- /ws/me ----------------

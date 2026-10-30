@@ -19,9 +19,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import auth, mailer, otp_service, push, request_log
 from .clock import today_start, utcnow
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
-from .models import CANCELLED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, PushToken, TLog
+from .models import CANCELLED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, PushToken, Setting, TLog
 from .schemas import (AvailabilityIn, EmailIn, FeedbackIn, GoogleAuthIn, MenuItemIn, OrderIn,
-                      OtpVerifyIn, ProfileIn, PushTokenIn, StatusIn)
+                      OtpVerifyIn, ProfileIn, PushTokenIn, StatusIn, StoreIn)
 from .seed import seed_menu
 from .ws import manager
 
@@ -166,6 +166,22 @@ def health() -> dict:
     return {"ok": True}
 
 
+PAUSED_MESSAGE = "We're not taking orders right now — please check back soon."
+
+
+def accepting_orders(db: Session) -> bool:
+    """The owner's Open / Paused switch (open unless they paused it)."""
+    row = db.get(Setting, "accepting_orders")
+    return row is None or row.value == "1"
+
+
+@app.get("/api/store")
+def store_status(db: Session = Depends(get_db)) -> dict:
+    """Is the stall taking orders? Changes are pushed as {type: "store"} on /ws/menu."""
+    open_ = accepting_orders(db)
+    return {"accepting_orders": open_, "message": None if open_ else PAUSED_MESSAGE}
+
+
 @app.get("/api/menu")
 def get_menu(db: Session = Depends(get_db)) -> list:
     items = db.query(MenuItem).filter(MenuItem.archived_at.is_(None)).order_by(MenuItem.sort_order).all()
@@ -266,6 +282,8 @@ def update_me(body: ProfileIn, request: Request, db: Session = Depends(get_db)) 
 async def create_order(body: OrderIn, request: Request, background: BackgroundTasks,
                        db: Session = Depends(get_db)) -> dict:
     session = auth.current_customer(request)
+    if not accepting_orders(db):  # checked here, not just hidden in the UI: old tabs and apps too
+        raise HTTPException(409, PAUSED_MESSAGE)
     active = db.query(func.count(Order.id)).filter(
         Order.customer_id == session["cid"], Order.status.notin_(["completed", CANCELLED])).scalar()
     if active >= MAX_ACTIVE_ORDERS:
@@ -531,16 +549,53 @@ async def delete_menu_item(item_id: int, request: Request, db: Session = Depends
     return {"id": item_id, "deleted": True}
 
 
+@app.patch("/api/admin/store")
+async def set_store(body: StoreIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    """Open / pause new orders. Orders already placed carry on as normal."""
+    auth.require_admin(request)
+    row = db.get(Setting, "accepting_orders")
+    if row is None:
+        db.add(Setting(key="accepting_orders", value="1" if body.accepting_orders else "0"))
+    else:
+        row.value = "1" if body.accepting_orders else "0"
+    db.commit()
+    status = {"accepting_orders": body.accepting_orders,
+              "message": None if body.accepting_orders else PAUSED_MESSAGE}
+    await manager.broadcast_menu({"type": "store", **status})
+    await manager.broadcast_admin({"type": "store", **status})  # the owner's other devices
+    return status
+
+
 @app.get("/api/admin/stats/today")
 def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
+    """The owner's numbers. Cash is only counted once an order is Done: at a cash-on-pickup
+    stall, Done means handed over and paid. Unfinished orders (any day) are "to collect"."""
     auth.require_admin(request)
-    orders = todays_orders(db).filter(Order.status != CANCELLED).all()
+    today = todays_orders(db).all()
+    kept = [o for o in today if o.status != CANCELLED]
+    done = [o for o in kept if o.status == "completed"]
+    unfinished = (db.query(Order).filter(Order.status.notin_(["completed", CANCELLED])).all())
     counts: dict = defaultdict(int)
-    for o in orders:
+    for o in kept:
         for i in o.items:
             counts[i.menu_item.name] += i.qty
     top = max(counts, key=counts.get) if counts else None
-    return {"orders": len(orders), "revenue": sum(o.total for o in orders), "top_item": top}
+    cash = sum(o.total for o in done)
+    by_status = {st: sum(1 for o in unfinished if o.status == st) for st in ("placed", "preparing", "ready")}
+    out_of_stock = db.query(func.count(MenuItem.id)).filter(
+        MenuItem.archived_at.is_(None), MenuItem.is_available.is_(False)).scalar()
+    return {
+        "orders": len(kept),                       # placed today, not cancelled
+        "cancelled": len(today) - len(kept),
+        "completed": len(done),
+        "cash_collected": cash,
+        "to_collect": sum(o.total for o in unfinished),
+        "active": by_status,                       # unfinished orders by status (any day)
+        "out_of_stock": out_of_stock,
+        "accepting_orders": accepting_orders(db),
+        "top_item": top,
+        "revenue": cash,  # old app versions (<= 1.9) show this as "Revenue": now the cash actually collected
+    }
 
 
 @app.get("/api/admin/feedback")
