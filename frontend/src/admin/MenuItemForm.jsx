@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { useBackToClose } from "../backButton.js";
 import { BigButton } from "../ui.jsx";
 
 const toPrice = (v) => (/^\d+$/.test(v) ? Number(v) : NaN);
@@ -29,6 +30,7 @@ export default function MenuItemForm({ item, categories, onSave, onClose }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => setErr(""), [name, category, full, hasHalf, half]); // fixing a field clears its message
+  useBackToClose(onClose);
 
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();

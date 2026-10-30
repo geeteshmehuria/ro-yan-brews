@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 
+import { useBackToClose } from "../backButton.js";
 import { LABELS, STATUSES, isActive } from "../constants.js";
 
 const SIZE_LABELS = { half: "Half", full: "Full" };
@@ -59,6 +60,7 @@ export function StatusActions({ order, setStatus, big = false }) {
 
 // Everything about one order. Reads the live order from the queue, so WebSocket updates show here too.
 export default function OrderDetail({ order, now, setStatus, onClose }) {
+  useBackToClose(onClose);
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
