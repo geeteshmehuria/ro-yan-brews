@@ -18,11 +18,27 @@ export default function MenuSection() {
   const [showRemoved, setShowRemoved] = useState(false);
   const [undo, setUndo] = useState(null); // the item just removed
   const undoTimer = useRef();
+  const retryTimer = useRef();
+  const alive = useRef(true);
 
-  const load = useCallback(() => api("/api/admin/menu").then((m) => { setItems(m); setErr(""); })
-    .catch((e) => setErr(e.message)), []);
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => () => clearTimeout(undoTimer.current), []);
+  // A network error, timeout or 5xx (e.g. the free-tier backend waking up) retries, like the
+  // orders do in AdminApp; a rejected session is left to AdminApp, which logs out.
+  const load = useCallback(() => {
+    clearTimeout(retryTimer.current);
+    return api("/api/admin/menu").then((m) => { setItems(m); setErr(""); }).catch((e) => {
+      setErr(e.message);
+      if (alive.current && (!e.status || e.status >= 500)) retryTimer.current = setTimeout(load, 5000);
+    });
+  }, []);
+  useEffect(() => {
+    alive.current = true;
+    load();
+    return () => {
+      alive.current = false;
+      clearTimeout(undoTimer.current);
+      clearTimeout(retryTimer.current);
+    };
+  }, [load]);
 
   useSocket("/ws/menu", (msg) => {
     if (msg.type === "availability") {
