@@ -20,7 +20,7 @@ function Tracker({ status }) {
   );
 }
 
-function OrderCard({ order, cancel }) {
+function OrderCard({ order, cancel, rate }) {
   const time = new Date(order.created_at + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const cancelled = order.status === "cancelled";
   return (
@@ -36,6 +36,10 @@ function OrderCard({ order, cancel }) {
       {cancelled
         ? <div className="mt-3 font-extrabold text-danger">Cancelled</div>
         : <Tracker status={order.status} />}
+      {order.status === "completed" && (order.reviewed
+        ? <p className="mt-1 text-sm font-bold text-accent2">Thanks for your feedback ✓</p>
+        : <button onClick={() => rate(order)}
+            className="press mt-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-bg1">Rate your food ⭐</button>)}
       {order.status === "placed" && (
         <button onClick={() => window.confirm("Cancel this order?") && cancel(order.id)}
           className="press glass-strong rounded-xl px-4 py-2 text-sm font-bold text-danger">Cancel order</button>
@@ -44,7 +48,7 @@ function OrderCard({ order, cancel }) {
   );
 }
 
-export default function OrdersScreen({ orders, cancel, newOrder, back }) {
+export default function OrdersScreen({ orders, cancel, rate, newOrder, back }) {
   return (
     <main className="screen-in px-3 pb-10">
       <Back onClick={back}>← Menu</Back>
@@ -53,7 +57,7 @@ export default function OrdersScreen({ orders, cancel, newOrder, back }) {
       <BigButton onClick={newOrder}>+ New order</BigButton>
       <div className="mt-4">
         {orders.length === 0 && <p className="glass p-5 text-center text-muted">No orders yet</p>}
-        {orders.map((o) => <OrderCard key={o.id} order={o} cancel={cancel} />)}
+        {orders.map((o) => <OrderCard key={o.id} order={o} cancel={cancel} rate={rate} />)}
       </div>
     </main>
   );

@@ -5,6 +5,7 @@ import { api, getSession, getToken, logout } from "../api.js";
 import { beep } from "../alerts.js";
 import { ICONS, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
+import FeedbackSection from "./FeedbackSection.jsx";
 import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDetail.jsx";
 
 function OrderCard({ order, now, setStatus, open }) {
@@ -159,6 +160,8 @@ export default function AdminApp() {
           {showDone && <div className="mt-3">{done.map(card)}</div>}
         </>
       )}
+
+      <FeedbackSection />
 
       <h2 className="mb-2.5 mt-6 px-1 font-black text-accent">Menu stock</h2>
       {menu.map((g) => g.items.map((item) => (

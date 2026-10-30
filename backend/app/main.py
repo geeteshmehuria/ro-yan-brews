@@ -19,8 +19,9 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import auth, mailer, otp_service, request_log
 from .clock import today_start
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
-from .models import CANCELLED, Customer, MenuItem, Order, OrderItem, ORDER_STATUSES, TLog
-from .schemas import AvailabilityIn, EmailIn, GoogleAuthIn, OrderIn, OtpVerifyIn, ProfileIn, StatusIn
+from .models import CANCELLED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, TLog
+from .schemas import (AvailabilityIn, EmailIn, FeedbackIn, GoogleAuthIn, OrderIn, OtpVerifyIn,
+                      ProfileIn, StatusIn)
 from .seed import seed_menu
 from .ws import manager
 
@@ -94,7 +95,8 @@ async def log_failures(request: Request, call_next):
 
 
 # Eager-load everything order_payload touches (avoids one query per order/item).
-ORDER_LOAD = (joinedload(Order.customer), selectinload(Order.items).joinedload(OrderItem.menu_item))
+ORDER_LOAD = (joinedload(Order.customer), selectinload(Order.items).joinedload(OrderItem.menu_item),
+              selectinload(Order.feedback))
 
 
 def mask(email: str) -> str:
@@ -114,8 +116,10 @@ def order_payload(o: Order, admin: bool = False) -> dict:
         "name": o.customer.name,
         "email": o.customer.email if admin else mask(o.customer.email),
         "created_at": o.created_at.isoformat(),
+        "reviewed": bool(o.feedback),  # feedback is sent once per order
         "items": [
             {
+                "menu_item_id": i.menu_item_id,
                 "name": i.menu_item.name,
                 "size": i.size,
                 "qty": i.qty,
@@ -320,6 +324,32 @@ async def cancel_order(order_id: int, request: Request, db: Session = Depends(ge
     return {"id": order.id, "status": order.status}
 
 
+@app.post("/api/orders/{order_id}/feedback", status_code=201)
+def give_feedback(order_id: int, body: FeedbackIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    """Rate the products of one of your own collected orders — once per order. Only real,
+    completed orders count, so every review comes from someone who actually got the food."""
+    session = auth.current_customer(request)
+    order = db.get(Order, order_id, options=ORDER_LOAD)
+    if order is None or order.customer_id != session["cid"]:
+        raise HTTPException(404, "Order not found")
+    if order.status != "completed":
+        raise HTTPException(400, "You can rate an order once you've collected it")
+    if order.feedback:
+        raise HTTPException(409, "You've already rated this order — thank you!")
+    in_order = {i.menu_item_id for i in order.items}
+    if any(r.menu_item_id not in in_order for r in body.ratings):
+        raise HTTPException(400, "You can only rate items from this order")
+    for r in body.ratings:
+        db.add(Feedback(customer_id=order.customer_id, order_id=order.id, menu_item_id=r.menu_item_id,
+                        rating=r.rating, comment=r.comment, allow_public=body.allow_public))
+    try:
+        db.commit()
+    except IntegrityError:  # a double tap sent it twice
+        db.rollback()
+        raise HTTPException(409, "You've already rated this order — thank you!")
+    return {"order_id": order.id, "reviewed": True}
+
+
 @app.get("/api/orders/{order_id}")
 def get_order(order_id: int, request: Request, db: Session = Depends(get_db)) -> dict:
     session = auth.current_customer(request)
@@ -389,6 +419,26 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
             counts[i.menu_item.name] += i.qty
     top = max(counts, key=counts.get) if counts else None
     return {"orders": len(orders), "revenue": sum(o.total for o in orders), "top_item": top}
+
+
+@app.get("/api/admin/feedback")
+def admin_feedback(request: Request, db: Session = Depends(get_db)) -> dict:
+    """Average stars per product, plus the latest 100 reviews (full email: owner only)."""
+    auth.require_admin(request)
+    averages = (db.query(MenuItem.id, MenuItem.name, func.avg(Feedback.rating), func.count(Feedback.id))
+                .join(Feedback, Feedback.menu_item_id == MenuItem.id)
+                .group_by(MenuItem.id, MenuItem.name).order_by(func.count(Feedback.id).desc()).all())
+    recent = (db.query(Feedback).options(joinedload(Feedback.customer), joinedload(Feedback.menu_item))
+              .order_by(Feedback.id.desc()).limit(100).all())
+    return {
+        "items": [{"menu_item_id": i, "name": n, "average": round(float(a), 1), "count": c}
+                  for i, n, a, c in averages],
+        "recent": [{
+            "id": f.id, "order_id": f.order_id, "item": f.menu_item.name, "rating": f.rating,
+            "comment": f.comment, "name": f.customer.name, "email": f.customer.email,
+            "allow_public": f.allow_public, "created_at": f.created_at.isoformat(),
+        } for f in recent],
+    }
 
 
 @app.get("/api/admin/logs")

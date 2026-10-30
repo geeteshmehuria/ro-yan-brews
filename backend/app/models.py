@@ -1,5 +1,5 @@
 from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer,
-                        String, Text)
+                        String, Text, UniqueConstraint)
 from sqlalchemy.orm import relationship
 
 from .clock import utcnow
@@ -39,6 +39,7 @@ class Order(Base):
     created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
     customer = relationship("Customer")
     items = relationship("OrderItem", cascade="all, delete-orphan")
+    feedback = relationship("Feedback", cascade="all, delete-orphan")
 
 
 class OrderItem(Base):
@@ -49,6 +50,25 @@ class OrderItem(Base):
     size = Column(String(8), default="na", nullable=False)
     qty = Column(Integer, nullable=False)
     price_at_order = Column(Integer, nullable=False)  # snapshot, never recomputed
+    menu_item = relationship("MenuItem")
+
+
+class Feedback(Base):
+    """A customer's rating of one product from one of their completed orders. Stored now;
+    showing it on the site later needs both the customer's consent (allow_public) and the
+    owner's pick (approved)."""
+    __tablename__ = "feedback"
+    __table_args__ = (UniqueConstraint("order_id", "menu_item_id"),)  # one review per product per order
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    menu_item_id = Column(Integer, ForeignKey("menu_items.id"), nullable=False, index=True)
+    rating = Column(Integer, nullable=False)  # 1-5 stars
+    comment = Column(String(300), nullable=True)
+    allow_public = Column(Boolean, default=False, nullable=False)  # customer's consent to be shown
+    approved = Column(Boolean, default=False, nullable=False)  # owner's pick for the site (not used yet)
+    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    customer = relationship("Customer")
     menu_item = relationship("MenuItem")
 
 

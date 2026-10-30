@@ -6,6 +6,7 @@ import { beep, flashTitle } from "../alerts.js";
 import { CART_KEY, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import { CartScreen } from "./Checkout.jsx";
+import FeedbackSheet from "./Feedback.jsx";
 import { Login } from "./Login.jsx";
 import MenuScreen from "./Menu.jsx";
 import OrdersScreen from "./Orders.jsx";
@@ -37,6 +38,7 @@ export default function CustomerApp() {
   const [sizes, setSizes] = useState({}); // itemId -> "half" | "full"
   const [orders, setOrders] = useState([]); // this customer's recent orders, newest first
   const [me, setMe] = useState(null); // { email, name }
+  const [rating, setRating] = useState(null); // { id, prompt } of the order being rated
   const loggedIn = screen !== "login";
   const ordersRef = useRef(orders);
   ordersRef.current = orders;
@@ -60,9 +62,16 @@ export default function CustomerApp() {
 
   const signOut = useCallback(() => {
     logout();
-    setCart({}); setOrders([]); setMe(null);
+    setCart({}); setOrders([]); setMe(null); setRating(null);
     setScreen("login");
   }, []);
+
+  const closeRating = useCallback(() => setRating(null), []);
+  const rated = (id) => {
+    setOrders((os) => os.map((o) => (o.id === id ? { ...o, reviewed: true } : o)));
+    setRating(null);
+  };
+  const ratingOrder = rating && orders.find((o) => o.id === rating.id);
 
   // An expired or rejected session goes back to login instead of leaving a half-empty screen.
   const onAuthError = useCallback((e) => { if (e.status === 401) signOut(); }, [signOut]);
@@ -90,6 +99,10 @@ export default function CustomerApp() {
   useSocket(loggedIn ? `/ws/me?token=${encodeURIComponent(getToken())}` : null, (msg) => {
     if (msg.type !== "status") return;
     setOrders((os) => os.map((o) => (o.id === msg.order_id ? { ...o, status: msg.status } : o)));
+    if (msg.status === "completed") {  // just collected: ask once how it was
+      const order = ordersRef.current.find((o) => o.id === msg.order_id);
+      if (order && !order.reviewed) setRating((r) => r || { id: order.id, prompt: true });
+    }
     if (msg.status === "ready") {
       const order = ordersRef.current.find((o) => o.id === msg.order_id);
       navigator.vibrate?.([200, 100, 200]);
@@ -161,11 +174,15 @@ export default function CustomerApp() {
         <CartScreen totals={totals} back={() => setScreen("menu")} placeOrder={placeOrder} />
       )}
       {screen === "orders" && (
-        <OrdersScreen orders={orders} cancel={cancelOrder} back={() => setScreen("menu")}
+        <OrdersScreen orders={orders} cancel={cancelOrder} rate={(o) => setRating({ id: o.id, prompt: false })}
+          back={() => setScreen("menu")}
           newOrder={() => setScreen("menu")} />
       )}
       {screen === "profile" && (
         <ProfileScreen me={me} onSaved={setMe} onLogout={signOut} back={() => setScreen("menu")} />
+      )}
+      {ratingOrder && loggedIn && (
+        <FeedbackSheet order={ratingOrder} prompt={rating.prompt} onDone={rated} onClose={closeRating} />
       )}
     </>
   );
