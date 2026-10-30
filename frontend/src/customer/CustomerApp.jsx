@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api, getSession, getToken, logout } from "../api.js";
 import { beep, flashTitle } from "../alerts.js";
 import { useBackButton } from "../backButton.js";
+import { disablePush, enablePush } from "../push.js";
 import { CART_KEY, IN_APP, isActive } from "../constants.js";
 import { useSocket } from "../useSocket.js";
 import { CartScreen } from "./Checkout.jsx";
@@ -62,6 +63,7 @@ export default function CustomerApp() {
   }, []);
 
   const signOut = useCallback(() => {
+    disablePush(); // not awaited: it has already read the session token it needs
     logout();
     setCart({}); setOrders([]); setMe(null); setRating(null);
     setScreen("login");
@@ -86,6 +88,18 @@ export default function CustomerApp() {
     loadOrders();
     api("/api/me").then(setMe).catch(onAuthError);
   }, [loggedIn, loadMenu, loadOrders, onAuthError]);
+
+  // Android app: this customer's order updates as notifications, even with the app closed.
+  // Tapping one opens My orders (and the rating sheet for "Thanks — how was it?").
+  useEffect(() => {
+    if (!loggedIn || getSession()?.is_admin) return; // the owner is on their way to /admin
+    enablePush((data) => {
+      const id = Number(data.order_id);
+      setScreen("orders");
+      loadOrders();
+      if (data.kind === "completed") setRating({ id, prompt: true });
+    });
+  }, [loggedIn, loadOrders]);
 
   // live stock updates (only once logged in)
   useSocket(loggedIn ? "/ws/menu" : null, (msg) => {
@@ -186,7 +200,7 @@ export default function CustomerApp() {
       {screen === "profile" && (
         <ProfileScreen me={me} onSaved={setMe} onLogout={signOut} back={() => setScreen("menu")} />
       )}
-      {ratingOrder && loggedIn && (
+      {ratingOrder && !ratingOrder.reviewed && loggedIn && (
         <FeedbackSheet order={ratingOrder} prompt={rating.prompt} onDone={rated} onClose={closeRating} />
       )}
     </>

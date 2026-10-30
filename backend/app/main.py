@@ -330,7 +330,7 @@ async def cancel_order(order_id: int, request: Request, background: BackgroundTa
     db.commit()
     await announce(order)
     background.add_task(push.notify_admins, f"Order #{order.order_number} cancelled",
-                        "The customer cancelled it — don't make it.", order.id)
+                        "The customer cancelled it — don't make it.", order.id, "cancelled")
     return {"id": order.id, "status": order.status}
 
 
@@ -400,6 +400,8 @@ async def set_status(order_id: int, body: StatusIn, request: Request, background
     order.status = body.status
     db.commit()
     await announce(order)
+    background.add_task(push.notify_customer, order.customer_id, order.id, order.order_number,
+                        order.total, order.status)
     if order.status == "ready":
         background.add_task(notify_ready, order.order_number, order.customer.email, order.customer.name)
     return {"id": order.id, "status": order.status}
@@ -561,25 +563,45 @@ def admin_feedback(request: Request, db: Session = Depends(get_db)) -> dict:
     }
 
 
-@app.post("/api/admin/push-token")
-def register_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
-    """The owner's Android app registers its FCM token here after login."""
-    email = auth.require_admin(request)["email"]
-    row = db.query(PushToken).filter_by(token=body.token).first()
+def _save_push_token(db: Session, token: str, session: dict) -> None:
+    """A phone belongs to whoever logged in on it last: re-registering moves it to them."""
+    row = db.query(PushToken).filter_by(token=token).first()
     if row is None:
-        db.add(PushToken(token=body.token, email=email))
+        db.add(PushToken(token=token, email=session["email"], customer_id=session["cid"]))
     else:
-        row.email = email
+        row.email, row.customer_id = session["email"], session["cid"]
     try:
         db.commit()
     except IntegrityError:  # registered twice at once
         db.rollback()
+
+
+@app.post("/api/push-token")
+def register_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    """The Android app registers its FCM token after login: the owner then gets order alerts,
+    a customer gets their own orders' progress."""
+    _save_push_token(db, body.token, auth.current_customer(request))
+    return {"registered": True, "enabled": push.configured()}
+
+
+@app.post("/api/push-token/remove")
+def remove_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    """Called on logout, so a logged-out phone stops getting notifications."""
+    auth.current_customer(request)
+    db.query(PushToken).filter_by(token=body.token).delete()
+    db.commit()
+    return {"removed": True}
+
+
+# The owner-only originals, still called by app versions up to 1.6.
+@app.post("/api/admin/push-token")
+def register_admin_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    _save_push_token(db, body.token, auth.require_admin(request))
     return {"registered": True, "enabled": push.configured()}
 
 
 @app.post("/api/admin/push-token/remove")
-def remove_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
-    """Called on logout, so a logged-out phone stops getting order alerts."""
+def remove_admin_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
     auth.require_admin(request)
     db.query(PushToken).filter_by(token=body.token).delete()
     db.commit()

@@ -9,7 +9,7 @@ Status: Decisions locked. UI design NOT started (intentionally deferred).
 
 A web app for the Ro-Yan fast food stall so customers can see the menu, place an order from their phone, and get notified when it's ready. The stall owner (admin) gets orders in real time on a dashboard.
 
-The same app also ships as an **Android app** (same screens; customers get the menu, the owner's login opens the dashboard, Google sign-in is web-only). Only the owner gets push notifications.
+The same app also ships as an **Android app** (same screens; customers get the menu, the owner's login opens the dashboard, Google sign-in is web-only). Push notifications (even when the app is closed): the owner gets new and cancelled orders; customers get their own order's progress (preparing, ready, done → rate, cancelled by the stall). The app is installed directly on a few phones (no Play Store).
 
 Primary user: customer on a mobile phone, including elderly customers.
 Secondary user: admin (stall owner) on phone or laptop.

@@ -87,11 +87,12 @@ class OtpCode(Base):
 
 
 class PushToken(Base):
-    """An owner's phone (the Android app), registered for FCM push notifications."""
+    """A phone with the Android app, registered for FCM pushes by whoever logged in last on it."""
     __tablename__ = "push_tokens"
     id = Column(Integer, primary_key=True)
     token = Column(String(4096), unique=True, nullable=False)  # FCM registration token
-    email = Column(String(255), nullable=False)  # who registered it; only admin emails get pushes
+    email = Column(String(255), nullable=False)  # who registered it; admin emails get order alerts
+    customer_id = Column(Integer, nullable=True)  # ...and this customer gets their own order's progress
     created_at = Column(DateTime, default=utcnow, nullable=False)
 
 

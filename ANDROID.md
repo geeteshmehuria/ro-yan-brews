@@ -112,15 +112,46 @@ place an order from the website → "New order #N · ₹…" with sound.
 
 | Problem | Fix |
 |---|---|
-| Never asked to allow notifications / no alerts | Settings → Apps → Ro-Yan → Notifications → on (and the **Orders** category on, with sound) |
+| Never asked to allow notifications / no alerts | Settings → Apps → Ro-Yan → Notifications → on (and the **New orders (owner)** / **My order updates** category on, with sound) |
 | Alerts come late or only when the app is open | vivo/iQOO kill background apps: Settings → Apps → Ro-Yan → **Battery → Allow background activity / Don't restrict**, and turn on **Autostart** |
 | Still nothing | Neon: `SELECT * FROM t_log WHERE path = 'push' ORDER BY id DESC LIMIT 5;` shows FCM's error. `SELECT count(*) FROM push_tokens;` = 0 means the phone never registered (missing `google-services.json`, or permission denied) |
+
+## Customers' phones (the 5–6 people who get the app)
+
+The app isn't on the Play Store, so you install it on each customer's phone yourself.
+
+**Install** (once per phone, with their permission):
+1. On their phone: Settings → About phone → tap **Software version / Build number** 7 times →
+   Developer options → **USB debugging** on (same as you did on your phone; brands differ slightly).
+2. Plug it into your PC → `npm run build:android` → pick their phone in Android Studio → **▶ Run**.
+   (Or build an APK — Build → Build App Bundle(s) / APK(s) → Build APK(s) — and send them the
+   file; they tap it and allow "install unknown apps". Phase 4 makes a properly signed one.)
+3. They log in with **their own email** (the code is emailed) and tap **Allow** for notifications.
+4. **Their battery settings**, or notifications arrive late — vivo/iQOO/Oppo/Realme/Xiaomi:
+   Settings → Apps → Ro-Yan → Battery → **Don't restrict / Allow background activity**, and
+   **Autostart** on. Samsung: Battery → **Unrestricted**.
+
+**What they get** (one notification per order, replaced as it moves on):
+
+| When you… | They see | Tapping it opens |
+|---|---|---|
+| tap **Preparing** | 👨‍🍳 Order #12 is being prepared | My orders |
+| tap **Ready** | 🎉 Order #12 is ready! Collect it and pay ₹170 cash | My orders |
+| tap **Done** | Thanks for your order #12 — how was your food? | the rating screen |
+| cancel it | Order #12 was cancelled | My orders |
+
+They also still get the "order ready" email, and the live updates while the app is open.
+If they cancel it themselves, only you are told. They can turn their notifications off in
+Settings → Apps → Ro-Yan → Notifications → **My order updates**.
+
+**Updating their app:** every app change needs **▶ Run** (or a new APK) on each of their phones too.
 
 ### How the app differs from the website
 - **No Google sign-in** (email code only) — a customer who signed up with Google logs in
   with an emailed code to the same address and keeps their orders.
 - **Back button** closes panels and screens before it leaves the app.
-- **Order alerts when the app is closed are for the owner only** (push notifications).
-  Customers get the live status while the app is open, and the "order ready" email.
+- **Notifications even when the app is closed**, for whoever is logged in on the phone:
+  the owner gets new and cancelled orders; a customer gets their own order's progress
+  (see "Customers' phones" below). The website can't do this.
 - Talks to the same live backend (`https://royan-api.onrender.com`), so orders are the same as on `/admin`.
 - **Website changes go live by themselves; app changes need a rebuild** (`npm run build:android` → ▶ Run).
