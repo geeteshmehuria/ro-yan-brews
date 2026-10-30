@@ -17,11 +17,11 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import auth, mailer, otp_service, push, request_log
-from .clock import today_start
+from .clock import today_start, utcnow
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
 from .models import CANCELLED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, PushToken, TLog
-from .schemas import (AvailabilityIn, EmailIn, FeedbackIn, GoogleAuthIn, OrderIn, OtpVerifyIn,
-                      ProfileIn, PushTokenIn, StatusIn)
+from .schemas import (AvailabilityIn, EmailIn, FeedbackIn, GoogleAuthIn, MenuItemIn, OrderIn,
+                      OtpVerifyIn, ProfileIn, PushTokenIn, StatusIn)
 from .seed import seed_menu
 from .ws import manager
 
@@ -45,7 +45,7 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_methods=["GET", "POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -168,7 +168,7 @@ def health() -> dict:
 
 @app.get("/api/menu")
 def get_menu(db: Session = Depends(get_db)) -> list:
-    items = db.query(MenuItem).order_by(MenuItem.sort_order).all()
+    items = db.query(MenuItem).filter(MenuItem.archived_at.is_(None)).order_by(MenuItem.sort_order).all()
     grouped: dict = defaultdict(list)
     cats: list = []
     for i in items:
@@ -277,6 +277,8 @@ async def create_order(body: OrderIn, request: Request, background: BackgroundTa
         item = db.get(MenuItem, line.menu_item_id)
         if item is None:
             raise HTTPException(400, "That item is not on the menu")
+        if item.archived_at is not None:
+            raise HTTPException(400, f"Sorry, {item.name} is not on the menu any more")
         if not item.is_available:
             raise HTTPException(400, f"Sorry, {item.name} is out of stock right now")
         if line.size == "half":
@@ -415,6 +417,116 @@ async def set_availability(item_id: int, body: AvailabilityIn, request: Request,
     await manager.broadcast_menu({"type": "availability", "item_id": item.id,
                                   "is_available": item.is_available})
     return {"id": item.id, "is_available": item.is_available}
+
+
+# ---------------- admin: menu editing ----------------
+# Every change is broadcast as {type: "menu_changed"} on /ws/menu; clients refetch the menu
+# (the customer's cart then re-prices itself and drops items that are gone).
+
+def _menu_item_out(item: MenuItem, ordered: bool) -> dict:
+    return {"id": item.id, "name": item.name, "category": item.category,
+            "price_half": item.price_half, "price_full": item.price_full,
+            "is_available": item.is_available, "archived": item.archived_at is not None,
+            "ordered": ordered}  # ever ordered -> can be removed (hidden) but not deleted
+
+
+def _ordered_ids(db: Session) -> set:
+    return {i for (i,) in db.query(OrderItem.menu_item_id).distinct()}
+
+
+def _check_name_free(db: Session, name: str, exclude_id: Optional[int] = None) -> None:
+    """Two items on the menu can't share a name (any letter case); removed items don't count."""
+    q = db.query(MenuItem).filter(func.lower(MenuItem.name) == name.lower(), MenuItem.archived_at.is_(None))
+    if exclude_id is not None:
+        q = q.filter(MenuItem.id != exclude_id)
+    if q.first() is not None:
+        raise HTTPException(409, f"“{name}” is already on the menu")
+
+
+def _admin_item(db: Session, item_id: int) -> MenuItem:
+    item = db.get(MenuItem, item_id)
+    if item is None:
+        raise HTTPException(404, "Menu item not found")
+    return item
+
+
+async def _menu_changed() -> None:
+    await manager.broadcast_menu({"type": "menu_changed"})
+
+
+@app.get("/api/admin/menu")
+def admin_menu(request: Request, db: Session = Depends(get_db)) -> list:
+    """Every item, removed ones included, in menu order (the public menu hides removed ones)."""
+    auth.require_admin(request)
+    ordered = _ordered_ids(db)
+    items = db.query(MenuItem).order_by(MenuItem.sort_order, MenuItem.id).all()
+    return [_menu_item_out(i, i.id in ordered) for i in items]
+
+
+@app.post("/api/admin/menu", status_code=201)
+async def add_menu_item(body: MenuItemIn, request: Request, db: Session = Depends(get_db)) -> dict:
+    auth.require_admin(request)
+    _check_name_free(db, body.name)
+    last = db.query(func.max(MenuItem.sort_order)).scalar()
+    item = MenuItem(name=body.name, category=body.category, price_full=body.price_full,
+                    price_half=body.price_half, is_available=body.is_available,
+                    sort_order=(last or 0) + 1)  # end of its category; a new category goes last
+    db.add(item)
+    db.commit()
+    await _menu_changed()
+    return _menu_item_out(item, False)
+
+
+@app.patch("/api/admin/menu/{item_id}")
+async def edit_menu_item(item_id: int, body: MenuItemIn, request: Request,
+                         db: Session = Depends(get_db)) -> dict:
+    """Past orders keep their price (price_at_order); a new name shows on old orders too."""
+    auth.require_admin(request)
+    item = _admin_item(db, item_id)
+    if item.archived_at is None:
+        _check_name_free(db, body.name, exclude_id=item.id)
+    item.name, item.category = body.name, body.category
+    item.price_full, item.price_half, item.is_available = body.price_full, body.price_half, body.is_available
+    db.commit()
+    await _menu_changed()
+    return _menu_item_out(item, item.id in _ordered_ids(db))
+
+
+@app.post("/api/admin/menu/{item_id}/remove")
+async def remove_menu_item(item_id: int, request: Request, db: Session = Depends(get_db)) -> dict:
+    auth.require_admin(request)
+    item = _admin_item(db, item_id)
+    if item.archived_at is None:
+        item.archived_at = utcnow()
+        db.commit()
+        await _menu_changed()
+    return _menu_item_out(item, item.id in _ordered_ids(db))
+
+
+@app.post("/api/admin/menu/{item_id}/restore")
+async def restore_menu_item(item_id: int, request: Request, db: Session = Depends(get_db)) -> dict:
+    auth.require_admin(request)
+    item = _admin_item(db, item_id)
+    if item.archived_at is not None:
+        _check_name_free(db, item.name, exclude_id=item.id)  # a new item may have taken the name
+        item.archived_at = None
+        db.commit()
+        await _menu_changed()
+    return _menu_item_out(item, item.id in _ordered_ids(db))
+
+
+@app.delete("/api/admin/menu/{item_id}")
+async def delete_menu_item(item_id: int, request: Request, db: Session = Depends(get_db)) -> dict:
+    """Only for items never ordered (typos); anything ordered must stay for past orders."""
+    auth.require_admin(request)
+    item = _admin_item(db, item_id)
+    if item.id in _ordered_ids(db):
+        raise HTTPException(409, f"{item.name} has been ordered before — remove it instead, "
+                                 "so past orders keep it")
+    db.delete(item)
+    db.commit()
+    await _menu_changed()
+    return {"id": item_id, "deleted": True}
 
 
 @app.get("/api/admin/stats/today")

@@ -51,7 +51,8 @@ Momos and Fries have half / full size options. Exact items and prices come from 
 2. **Status buttons** — move order through Preparing / Ready / Completed.
 3. **Order list** — customer email (full for the owner, masked for customers), items, time placed.
 4. **Stock toggle** — mark any item out of stock / back in stock. Reflects on customer menu immediately.
-5. **Feedback (read-only)** — average stars per product and the latest reviews, marked public/private.
+5. **Menu editing** — add items (name, category, price, optional half price, in stock), edit them, remove them (hidden, restorable — past orders keep them) and delete items that were never ordered. Live on every customer's menu. This is how the real menu gets in: production starts with an empty menu.
+6. **Feedback (read-only)** — average stars per product and the latest reviews, marked public/private.
 
 ## 7. Admin features (v2)
 
