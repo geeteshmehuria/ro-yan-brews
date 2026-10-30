@@ -640,7 +640,8 @@ def reports(request: Request, days: int = 7, db: Session = Depends(get_db)) -> d
     items: dict = {}
     for o in done:
         for i in o.items:
-            row = items.setdefault(i.menu_item_id, {"name": i.menu_item.name, "qty": 0, "half": 0, "value": 0})
+            row = items.setdefault(i.menu_item_id, {"menu_item_id": i.menu_item_id, "name": i.menu_item.name,
+                                                    "qty": 0, "half": 0, "value": 0})
             row["qty"] += i.qty
             row["half"] += i.qty if i.size == "half" else 0
             row["value"] += i.qty * i.price_at_order

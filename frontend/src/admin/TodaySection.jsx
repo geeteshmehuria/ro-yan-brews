@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "../api.js";
 
@@ -42,9 +42,13 @@ export default function TodaySection() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
+  const latest = useRef(0); // switching 7 ↔ 30 quickly: only the newest request may fill the screen
   const load = useCallback(() => {
+    const ask = ++latest.current;
     setErr("");
-    api(`/api/admin/reports?days=${days}`).then(setData).catch((e) => setErr(e.message));
+    api(`/api/admin/reports?days=${days}`)
+      .then((d) => { if (ask === latest.current) setData(d); })
+      .catch((e) => { if (ask === latest.current) setErr(e.message); });
   }, [days]);
   useEffect(() => { load(); }, [load]);
 
@@ -110,7 +114,7 @@ export default function TodaySection() {
         <div className="mb-1 text-xs font-black uppercase tracking-wider text-muted">Best sellers (orders done)</div>
         {data.top_items.length === 0 && <p className="py-2 text-sm text-muted">Nothing sold yet in these days</p>}
         {data.top_items.map((i, n) => (
-          <div key={i.name} className="flex items-baseline justify-between gap-3 border-b border-[var(--stroke)] py-2.5 last:border-0">
+          <div key={i.menu_item_id} className="flex items-baseline justify-between gap-3 border-b border-[var(--stroke)] py-2.5 last:border-0">
             <div className="min-w-0">
               <b className="text-accent">{n + 1}.</b> <b className="break-words">{i.name}</b>
               <div className="text-xs text-muted">

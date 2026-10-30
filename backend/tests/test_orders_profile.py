@@ -244,3 +244,17 @@ def test_add_missing_columns_upgrades_old_tables_and_is_idempotent(tmp_path):
     with engine.connect() as conn:
         assert conn.execute(text("SELECT name FROM customers")).scalar() is None
     engine.dispose()
+
+
+def test_add_missing_columns_also_creates_their_indexes(tmp_path):
+    engine = create_engine(f"sqlite:///{(tmp_path / 'old.db').as_posix()}")
+    with engine.begin() as conn:  # orders as it was before completed_at existed
+        conn.execute(text("CREATE TABLE orders (id INTEGER PRIMARY KEY, order_number INTEGER NOT NULL, "
+                          "customer_id INTEGER NOT NULL, status VARCHAR(20) NOT NULL, total INTEGER NOT NULL, "
+                          "created_at DATETIME NOT NULL)"))
+    add_missing_columns(engine)
+    add_missing_columns(engine)  # idempotent
+    indexes = {i["name"] for i in inspect(engine).get_indexes("orders")}
+    assert "ix_orders_completed_at" in indexes
+    assert "ix_orders_created_at" not in indexes  # existing columns are left alone
+    engine.dispose()

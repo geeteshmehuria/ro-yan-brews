@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useBackButton } from "./backButton.js";
 
 let enqueue = null; // set while <DialogHost /> is mounted
+let nextId = 0;
 
 const TONES = {
   accent: { button: "bg-accent text-bg1", icon: "❔" },
@@ -66,14 +67,18 @@ function Dialog({ d, close }) {
 export function DialogHost() {
   const [queue, setQueue] = useState([]);
   useEffect(() => {
-    enqueue = (d) => setQueue((q) => [...q, d]);
+    enqueue = (d) => setQueue((q) => [...q, { ...d, id: ++nextId }]);
     return () => { enqueue = null; };
   }, []);
   const current = queue[0];
   if (!current) return null;
+  // Each pop-up answers once: a second close before React re-renders (Esc + a tap) must not
+  // remove the next queued pop-up unanswered.
   const close = (ok) => {
-    setQueue((q) => q.slice(1));
+    if (current.closed) return;
+    current.closed = true;
+    setQueue((q) => q.filter((d) => d !== current));
     current.resolve(ok);
   };
-  return <Dialog key={queue.length + current.title} d={current} close={close} />;
+  return <Dialog key={current.id} d={current} close={close} />;
 }

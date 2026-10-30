@@ -86,8 +86,9 @@ def test_top_items_use_sold_prices_and_split_half_and_full(client, login, make_i
     client.patch(f"/api/admin/menu/{momo['id']}", headers=owner,
                  json={"name": "Steam Momos", "category": "Momos", "price_full": 200, "price_half": 150})
     top = report(client, owner)["top_items"]
-    assert top[0] == {"name": "Steam Momos", "qty": 4, "half": 3, "value": 240}  # 3*50 + 90, old prices
-    assert top[1] == {"name": "Oreo Shake", "qty": 2, "half": 0, "value": 160}
+    assert top[0] == {"menu_item_id": momo["id"], "name": "Steam Momos", "qty": 4, "half": 3,
+                      "value": 240}  # 3*50 + 90, old prices
+    assert top[1] == {"menu_item_id": shake["id"], "name": "Oreo Shake", "qty": 2, "half": 0, "value": 160}
     assert unpaid
 
 
