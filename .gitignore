@@ -13,3 +13,7 @@ __pycache__/
 .pytest_cache/
 venv/
 .venv/
+# IDE settings (Android Studio / IntelliJ), per machine
+.idea/
+# Firebase app config of the Android app: kept local, not pushed (see ANDROID.md, Phase 3)
+frontend/android/app/google-services.json
