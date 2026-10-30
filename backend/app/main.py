@@ -10,7 +10,7 @@ from fastapi.exception_handlers import http_exception_handler, request_validatio
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from starlette.concurrency import run_in_threadpool
@@ -334,7 +334,12 @@ def get_order(order_id: int, request: Request, db: Session = Depends(get_db)) ->
 @app.get("/api/admin/orders")
 def admin_orders(request: Request, db: Session = Depends(get_db)) -> list:
     auth.require_admin(request)
-    orders = todays_orders(db).order_by(Order.created_at.desc()).all()
+    # Today's orders plus any older one still in progress, so an order placed just before
+    # midnight doesn't drop out of the queue while it's being made.
+    unfinished = Order.status.notin_(["completed", CANCELLED])
+    orders = (db.query(Order).options(*ORDER_LOAD)
+              .filter(or_(Order.created_at >= today_start(), unfinished))
+              .order_by(Order.created_at.desc()).all())
     return [order_payload(o, admin=True) for o in orders]
 
 

@@ -257,6 +257,22 @@ def test_customer_cannot_use_admin_endpoints(client, login, make_item):
     assert r.status_code == 403
 
 
+def test_unfinished_orders_stay_in_the_queue_past_midnight(client, login, make_item):
+    item, token, owner = make_item(), login(), bearer(login(OWNER))
+    cooking, done, gone = (place(client, token, item).json()["id"] for _ in range(3))
+    client.patch(f"/api/admin/orders/{cooking}/status", json={"status": "preparing"}, headers=owner)
+    client.patch(f"/api/admin/orders/{done}/status", json={"status": "completed"}, headers=owner)
+    client.post(f"/api/orders/{gone}/cancel", headers=bearer(token))
+    with SessionLocal() as db:
+        db.query(Order).update({"created_at": utcnow() - timedelta(days=1)})
+        db.commit()
+    today = place(client, token, item).json()["id"]
+    queue = [o["id"] for o in client.get("/api/admin/orders", headers=owner).json()]
+    assert queue == [today, cooking]  # yesterday's finished/cancelled ones are gone
+    stats = client.get("/api/admin/stats/today", headers=owner).json()
+    assert stats["orders"] == 1  # stats stay "today only"
+
+
 def test_owner_sees_full_email_customer_sees_masked(client, login, make_item):
     token = login("someone@gmail.com")
     place(client, token, make_item())

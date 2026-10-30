@@ -58,15 +58,24 @@ export default function CustomerApp() {
     } catch (e) { setError(e.message); }
   }, []);
 
+  const signOut = useCallback(() => {
+    logout();
+    setCart({}); setOrders([]); setMe(null);
+    setScreen("login");
+  }, []);
+
+  // An expired or rejected session goes back to login instead of leaving a half-empty screen.
+  const onAuthError = useCallback((e) => { if (e.status === 401) signOut(); }, [signOut]);
+
   const loadOrders = useCallback(
-    () => api("/api/orders/mine").then(setOrders).catch(() => {}), []);
+    () => api("/api/orders/mine").then(setOrders).catch(onAuthError), [onAuthError]);
 
   useEffect(() => {
     if (!loggedIn) return;
     loadMenu();
     loadOrders();
-    api("/api/me").then(setMe).catch(() => {});
-  }, [loggedIn, loadMenu, loadOrders]);
+    api("/api/me").then(setMe).catch(onAuthError);
+  }, [loggedIn, loadMenu, loadOrders, onAuthError]);
 
   // live stock updates (only once logged in)
   useSocket(loggedIn ? "/ws/menu" : null, (msg) => {
@@ -116,12 +125,6 @@ export default function CustomerApp() {
   const onLoggedIn = ({ is_admin }) => {
     if (is_admin) navigate("/admin", { replace: true });
     else setScreen("menu");
-  };
-
-  const signOut = () => {
-    logout();
-    setCart({}); setOrders([]); setMe(null);
-    setScreen("login");
   };
 
   // Already authenticated by this point — just place the order.
