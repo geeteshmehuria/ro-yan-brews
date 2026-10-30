@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api } from "../api.js";
 
 const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
 
 // Read-only for now: what customers think of each product. Loaded when opened.
-export default function FeedbackSection() {
-  const [open, setOpen] = useState(false);
+// `alwaysOpen`: shown as its own tab — no fold, loaded straight away.
+export default function FeedbackSection({ alwaysOpen = false }) {
+  const [open, setOpen] = useState(alwaysOpen);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (alwaysOpen) api("/api/admin/feedback").then(setData).catch((e) => setErr(e.message));
+  }, [alwaysOpen]);
 
   const toggle = () => {
     const next = !open;
@@ -21,10 +26,14 @@ export default function FeedbackSection() {
 
   return (
     <>
-      <button onClick={toggle}
-        className="press glass-strong mt-6 w-full rounded-xl px-4 py-3 text-left font-black text-accent">
-        {open ? "▾" : "▸"} Customer feedback{data ? ` (${data.recent.length})` : ""}
-      </button>
+      {alwaysOpen ? (
+        <h2 className="mb-2.5 mt-5 px-1 font-black text-accent">Customer feedback{data ? ` (${data.recent.length})` : ""}</h2>
+      ) : (
+        <button onClick={toggle}
+          className="press glass-strong mt-6 w-full rounded-xl px-4 py-3 text-left font-black text-accent">
+          {open ? "▾" : "▸"} Customer feedback{data ? ` (${data.recent.length})` : ""}
+        </button>
+      )}
       {open && (
         <div className="mt-3">
           {err && <p className="glass p-4 text-center text-sm text-danger">{err}</p>}

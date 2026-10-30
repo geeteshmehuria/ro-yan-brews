@@ -129,13 +129,19 @@ function Skeletons() {
   );
 }
 
-export default function MenuScreen({ menu, error, retry, cart, totals, sizeOf, setSizes, changeQty,
+export default function MenuScreen({ paused, menu, error, retry, cart, totals, sizeOf, setSizes, changeQty,
   activeOrders, openOrders, openProfile, openCart }) {
   const [active, setActive] = useState("Shakes");
   return (
     <div className="screen-in pb-32">
       <Header activeCount={activeOrders.length} openOrders={openOrders} openProfile={openProfile} />
       <ActiveOrders orders={activeOrders} open={openOrders} />
+      {paused && (
+        <div role="status" className="mx-3 mt-3 rounded-glass border border-danger bg-danger-soft p-4 text-center">
+          <b className="text-danger">⏸ {paused}</b>
+          <p className="mt-1 text-sm text-muted">You can still look at the menu and track your orders.</p>
+        </div>
+      )}
       <Hero />
       {error && (
         <div className="glass mx-3 mt-4 p-4 text-center">

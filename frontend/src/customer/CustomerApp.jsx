@@ -40,6 +40,7 @@ export default function CustomerApp() {
   const [sizes, setSizes] = useState({}); // itemId -> "half" | "full"
   const [orders, setOrders] = useState([]); // this customer's recent orders, newest first
   const [me, setMe] = useState(null); // { email, name }
+  const [paused, setPaused] = useState(null); // the owner paused orders: their message, else null
   const [rating, setRating] = useState(null); // { id, prompt } of the order being rated
   const loggedIn = screen !== "login";
   const ordersRef = useRef(orders);
@@ -82,12 +83,16 @@ export default function CustomerApp() {
   const loadOrders = useCallback(
     () => api("/api/orders/mine").then(setOrders).catch(onAuthError), [onAuthError]);
 
+  const loadStore = useCallback(() => api("/api/store")
+    .then((st) => setPaused(st.accepting_orders ? null : st.message)).catch(() => {}), []);
+
   useEffect(() => {
     if (!loggedIn) return;
+    loadStore();
     loadMenu();
     loadOrders();
     api("/api/me").then(setMe).catch(onAuthError);
-  }, [loggedIn, loadMenu, loadOrders, onAuthError]);
+  }, [loggedIn, loadStore, loadMenu, loadOrders, onAuthError]);
 
   // Android app: this customer's order updates as notifications, even with the app closed.
   // Tapping one opens My orders (and the rating sheet for "Thanks — how was it?").
@@ -104,12 +109,13 @@ export default function CustomerApp() {
   // live stock updates (only once logged in)
   useSocket(loggedIn ? "/ws/menu" : null, (msg) => {
     if (msg.type === "menu_changed") return loadMenu(); // owner added/edited/removed items; re-prices the cart
+    if (msg.type === "store") return setPaused(msg.accepting_orders ? null : msg.message);
     if (msg.type !== "availability") return;
     setMenu((m) => m && m.map((g) => ({
       ...g,
       items: g.items.map((i) => (i.id === msg.item_id ? { ...i, is_available: msg.is_available } : i)),
     })));
-  }, loadMenu);
+  }, () => { loadMenu(); loadStore(); });
 
   // live status of all my orders — on any screen, so ordering again never hides the last one
   useSocket(loggedIn ? `/ws/me?token=${encodeURIComponent(getToken())}` : null, (msg) => {
@@ -184,6 +190,7 @@ export default function CustomerApp() {
       setScreen("orders");
     } catch (e) {
       if (e.status === 401) signOut();  // session lapsed
+      else if (e.status === 409) { setPaused(e.message); throw e; } // paused while they were in the cart
       else throw e;
     }
   };
@@ -199,13 +206,13 @@ export default function CustomerApp() {
     <>
       {screen === "login" && <Login onDone={onLoggedIn} allowGoogle={!IN_APP} />}
       {screen === "menu" && (
-        <MenuScreen menu={menu} error={error} retry={loadMenu} cart={cart} totals={totals}
+        <MenuScreen paused={paused} menu={menu} error={error} retry={loadMenu} cart={cart} totals={totals}
           sizeOf={sizeOf} setSizes={setSizes} changeQty={changeQty}
           activeOrders={orders.filter(isActive)} openOrders={() => setScreen("orders")}
           openProfile={() => setScreen("profile")} openCart={() => setScreen("cart")} />
       )}
       {screen === "cart" && (
-        <CartScreen totals={totals} back={() => setScreen("menu")} placeOrder={placeOrder}
+        <CartScreen paused={paused} totals={totals} back={() => setScreen("menu")} placeOrder={placeOrder}
           changeLine={changeLine} removeLine={removeLine} />
       )}
       {screen === "orders" && (

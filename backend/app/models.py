@@ -7,6 +7,8 @@ from .db import Base
 
 ORDER_STATUSES = ["placed", "preparing", "ready", "completed"]  # the forward-only ladder
 CANCELLED = "cancelled"  # off the ladder: only reachable from placed/preparing
+NOT_COLLECTED = "not_collected"  # off the ladder, owner only, from ready: the customer never came (no cash)
+CLOSED = ["completed", CANCELLED, NOT_COLLECTED]  # finished one way or another: never move again
 
 
 class MenuItem(Base):
@@ -40,6 +42,9 @@ class Order(Base):
     total = Column(Integer, nullable=False)
     note = Column(String(200), nullable=True)  # customer's special instructions
     created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    # When it was marked Done (handed over and paid) — the day its cash counts for. Nullable so
+    # add_missing_columns adds it; orders completed before it existed fall back to created_at.
+    completed_at = Column(DateTime, nullable=True, index=True)
     customer = relationship("Customer")
     items = relationship("OrderItem", cascade="all, delete-orphan")
     feedback = relationship("Feedback", cascade="all, delete-orphan")
@@ -84,6 +89,13 @@ class OtpCode(Base):
     verified = Column(Boolean, default=False, nullable=False)
     attempt_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, default=utcnow, nullable=False)
+
+
+class Setting(Base):
+    """Small owner-controlled switches, one row each (missing row = the default)."""
+    __tablename__ = "settings"
+    key = Column(String(40), primary_key=True)  # e.g. "accepting_orders"
+    value = Column(String(200), nullable=False)
 
 
 class PushToken(Base):

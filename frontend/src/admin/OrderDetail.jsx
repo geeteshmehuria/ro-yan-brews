@@ -28,6 +28,7 @@ const BADGE = {
   ready: "bg-accent2 text-bg1",
   completed: "glass-strong text-muted",
   cancelled: "bg-danger text-bg1",
+  not_collected: "bg-warn text-bg1",
 };
 
 export function StatusBadge({ status }) {
@@ -37,6 +38,7 @@ export function StatusBadge({ status }) {
 // Status buttons shared by the queue card and the detail panel, so both behave the same.
 export function StatusActions({ order, setStatus, big = false }) {
   if (order.status === "cancelled") return <div className="font-extrabold text-danger">Cancelled</div>;
+  if (order.status === "not_collected") return <div className="font-extrabold text-warn">Not collected — no cash</div>;
   const size = big ? "min-h-[48px] flex-1 px-3 text-base" : "px-3 py-2 text-xs";
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -52,6 +54,13 @@ export function StatusActions({ order, setStatus, big = false }) {
         <button onClick={() => window.confirm("Cancel this order?") && setStatus(order, "cancelled")}
           className={`press rounded-lg border border-[var(--stroke)] font-bold text-danger ${size}`}>
           Cancel
+        </button>
+      )}
+      {order.status === "ready" && (
+        <button onClick={() => window.confirm(`Mark order #${order.order_number} as not collected? It closes without counting any cash. The customer isn't notified.`)
+          && setStatus(order, "not_collected")}
+          className={`press rounded-lg border border-[var(--stroke)] font-bold text-warn ${size}`}>
+          Not collected
         </button>
       )}
     </div>
