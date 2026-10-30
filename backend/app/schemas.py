@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from .models import CANCELLED, ORDER_STATUSES
+from .models import CANCELLED, NOT_COLLECTED, ORDER_STATUSES
 
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
 
@@ -89,7 +89,7 @@ class StatusIn(BaseModel):
     @field_validator("status")
     @classmethod
     def known_status(cls, v: str) -> str:
-        if v not in ORDER_STATUSES + [CANCELLED]:
+        if v not in ORDER_STATUSES + [CANCELLED, NOT_COLLECTED]:
             raise ValueError("Unknown status")
         return v
 

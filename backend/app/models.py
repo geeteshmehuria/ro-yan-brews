@@ -7,6 +7,8 @@ from .db import Base
 
 ORDER_STATUSES = ["placed", "preparing", "ready", "completed"]  # the forward-only ladder
 CANCELLED = "cancelled"  # off the ladder: only reachable from placed/preparing
+NOT_COLLECTED = "not_collected"  # off the ladder, owner only, from ready: the customer never came (no cash)
+CLOSED = ["completed", CANCELLED, NOT_COLLECTED]  # finished one way or another: never move again
 
 
 class MenuItem(Base):

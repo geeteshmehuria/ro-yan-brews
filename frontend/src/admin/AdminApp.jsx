@@ -21,13 +21,14 @@ const waitLevel = (order, now) => {
 
 function OrderCard({ order, now, setStatus, open }) {
   const cancelled = order.status === "cancelled";
+  const uncollected = order.status === "not_collected";
   const wait = waitLevel(order, now);
   const count = order.items.reduce((n, i) => n + i.qty, 0);
   const summary = order.items.map((i) => `${i.name}${sizeLabel(i.size) ? ` (${sizeLabel(i.size)})` : ""} ×${i.qty}`).join(", ");
   return (
     <div role="button" tabIndex={0} aria-label={`Open order #${order.order_number}`}
       onClick={open} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && e.target === e.currentTarget && (e.preventDefault(), open())}
-      className={`glass mb-3 cursor-pointer border-l-4 p-4 ${cancelled ? "opacity-50 !border-l-danger" : order.fresh ? "flash-new !border-l-danger"
+      className={`glass mb-3 cursor-pointer border-l-4 p-4 ${cancelled ? "opacity-50 !border-l-danger" : uncollected ? "opacity-60 !border-l-warn" : order.fresh ? "flash-new !border-l-danger"
         : wait === "red" ? "!border-l-danger" : wait === "amber" ? "!border-l-warn" : "!border-l-accent"}`}>
       <div className="flex justify-between font-extrabold">
         <span>#{order.order_number} · {order.name || order.email}</span>
@@ -274,7 +275,7 @@ export default function AdminApp() {
             <>
               <button onClick={() => setShowDone((v) => !v)}
                 className="press glass-strong mt-2 w-full rounded-xl px-4 py-3 text-left text-sm font-bold text-muted">
-                {showDone ? "▾" : "▸"} Finished &amp; cancelled ({done.length})
+                {showDone ? "▾" : "▸"} Finished, cancelled &amp; not collected ({done.length})
               </button>
               {showDone && <div className="mt-3">{done.map(card)}</div>}
             </>

@@ -23,8 +23,9 @@ function Tracker({ status }) {
 function OrderCard({ order, cancel, rate }) {
   const time = new Date(order.created_at + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const cancelled = order.status === "cancelled";
+  const uncollected = order.status === "not_collected"; // the stall closed it: it was ready but never picked up
   return (
-    <div className={`glass mb-3 p-4 ${cancelled ? "opacity-60" : ""}`}>
+    <div className={`glass mb-3 p-4 ${cancelled || uncollected ? "opacity-60" : ""}`}>
       <div className="flex items-baseline justify-between">
         <span className="text-2xl font-black text-accent">#{order.order_number}</span>
         <span className="text-sm text-muted">{time} · <b className="text-accent2">₹{order.total}</b></span>
@@ -33,8 +34,8 @@ function OrderCard({ order, cancel, rate }) {
         {order.items.map((i) => `${i.name}${i.size !== "na" ? ` (${i.size})` : ""} ×${i.qty}`).join(", ")}
       </div>
       {order.note && <div className="mt-1 text-sm italic text-muted">“{order.note}”</div>}
-      {cancelled
-        ? <div className="mt-3 font-extrabold text-danger">Cancelled</div>
+      {cancelled ? <div className="mt-3 font-extrabold text-danger">Cancelled</div>
+        : uncollected ? <div className="mt-3 font-extrabold text-muted">Not collected</div>
         : <Tracker status={order.status} />}
       {order.status === "completed" && (order.reviewed
         ? <p className="mt-1 text-sm font-bold text-accent2">Thanks for your feedback ✓</p>

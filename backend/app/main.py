@@ -19,7 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import auth, mailer, otp_service, push, request_log
 from .clock import today_start, utcnow
 from .db import Base, add_missing_columns, engine, get_db, SessionLocal
-from .models import CANCELLED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, PushToken, Setting, TLog
+from .models import CANCELLED, CLOSED, NOT_COLLECTED, Customer, Feedback, MenuItem, Order, OrderItem, ORDER_STATUSES, PushToken, Setting, TLog
 from .schemas import (AvailabilityIn, EmailIn, FeedbackIn, GoogleAuthIn, MenuItemIn, OrderIn,
                       OtpVerifyIn, ProfileIn, PushTokenIn, StatusIn, StoreIn)
 from .seed import seed_menu
@@ -285,7 +285,7 @@ async def create_order(body: OrderIn, request: Request, background: BackgroundTa
     if not accepting_orders(db):  # checked here, not just hidden in the UI: old tabs and apps too
         raise HTTPException(409, PAUSED_MESSAGE)
     active = db.query(func.count(Order.id)).filter(
-        Order.customer_id == session["cid"], Order.status.notin_(["completed", CANCELLED])).scalar()
+        Order.customer_id == session["cid"], Order.status.notin_(CLOSED)).scalar()
     if active >= MAX_ACTIVE_ORDERS:
         raise HTTPException(429, f"You already have {active} orders in progress — "
                                  "please collect them before ordering more")
@@ -394,7 +394,7 @@ def admin_orders(request: Request, db: Session = Depends(get_db)) -> list:
     auth.require_admin(request)
     # Today's orders plus any older one still in progress, so an order placed just before
     # midnight doesn't drop out of the queue while it's being made.
-    unfinished = Order.status.notin_(["completed", CANCELLED])
+    unfinished = Order.status.notin_(CLOSED)
     orders = (db.query(Order).options(*ORDER_LOAD)
               .filter(or_(Order.created_at >= today_start(), unfinished))
               .order_by(Order.created_at.desc()).all())
@@ -410,6 +410,8 @@ async def set_status(order_id: int, body: StatusIn, request: Request, background
         raise HTTPException(404, "Order not found")
     if body.status == CANCELLED:  # the owner can reject an order until it's ready
         allowed = order.status in ORDER_STATUSES[:2]
+    elif body.status == NOT_COLLECTED:  # ready, but the customer never came: closed, no cash
+        allowed = order.status == "ready"
     else:  # otherwise strictly forward; cancelled/completed orders never move again
         allowed = order.status in ORDER_STATUSES and \
             ORDER_STATUSES.index(body.status) > ORDER_STATUSES.index(order.status)
@@ -582,7 +584,7 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
         Order.completed_at >= start,
         and_(Order.completed_at.is_(None), Order.created_at >= start),  # done before completed_at existed
     )).all())
-    unfinished = (db.query(Order).filter(Order.status.notin_(["completed", CANCELLED])).all())
+    unfinished = (db.query(Order).filter(Order.status.notin_(CLOSED)).all())
     counts: dict = defaultdict(int)
     for o in kept:
         for i in o.items:
@@ -595,6 +597,7 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
     return {
         "orders": len(kept),                       # placed today, not cancelled
         "cancelled": len(today) - len(kept),
+        "not_collected": sum(1 for o in today if o.status == NOT_COLLECTED),
         "completed": len(done),
         "cash_collected": cash,
         "to_collect": sum(o.total for o in unfinished),

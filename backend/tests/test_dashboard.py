@@ -126,3 +126,68 @@ def test_orders_done_before_completed_at_existed_count_by_placed_day(client, log
         db.get(Order, oid).completed_at = None  # an old row
         db.commit()
     assert stats(client, owner)["cash_collected"] == 50
+
+
+# ---------------- not collected ----------------
+
+def test_not_collected_closes_a_ready_order_without_cash(client, login, make_item):
+    owner, token = bearer(login(OWNER)), login()
+    oid = place(client, token, make_item(full=150), qty=1).json()["id"]
+    status(client, owner, oid, "ready")
+    assert stats(client, owner)["to_collect"] == 150
+    status(client, owner, oid, "not_collected")
+    s = stats(client, owner)
+    assert (s["cash_collected"], s["to_collect"], s["not_collected"]) == (0, 0, 1)
+    assert s["active"]["ready"] == 0
+    mine = client.get("/api/orders/mine", headers=bearer(token)).json()
+    assert mine[0]["status"] == "not_collected"  # the customer sees it too
+
+
+def test_only_a_ready_order_can_be_not_collected(client, login, make_item):
+    owner, token, item = bearer(login(OWNER)), login(), make_item()
+    oid = place(client, token, item).json()["id"]
+    r = client.patch(f"/api/admin/orders/{oid}/status", json={"status": "not_collected"}, headers=owner)
+    assert r.status_code == 400  # still placed
+    status(client, owner, oid, "ready")
+    status(client, owner, oid, "not_collected")
+    for st in ("completed", "ready", "cancelled", "not_collected"):  # closed: never moves again
+        r = client.patch(f"/api/admin/orders/{oid}/status", json={"status": st}, headers=owner)
+        assert r.status_code == 400, st
+
+
+def test_customers_cannot_mark_not_collected(client, login, make_item):
+    token = login()
+    oid = place(client, token, make_item()).json()["id"]
+    r = client.patch(f"/api/admin/orders/{oid}/status", json={"status": "not_collected"}, headers=bearer(token))
+    assert r.status_code == 403
+
+
+def test_not_collected_frees_the_customers_order_slot(client, login, make_item, monkeypatch):
+    owner, token, item = bearer(login(OWNER)), login(), make_item()
+    ids = [place(client, token, item).json()["id"] for _ in range(3)]
+    assert place(client, token, item).status_code == 429  # 3 in progress
+    status(client, owner, ids[0], "ready")
+    status(client, owner, ids[0], "not_collected")
+    assert place(client, token, item).status_code == 201
+
+
+def test_not_collected_sends_the_customer_no_notification(client, login, make_item, monkeypatch):
+    from app import push
+    sent = []
+    monkeypatch.setattr(push, "_send", lambda *a, **k: sent.append(a))
+    owner, token = bearer(login(OWNER)), login()
+    oid = place(client, token, make_item()).json()["id"]
+    status(client, owner, oid, "ready")
+    sent.clear()
+    status(client, owner, oid, "not_collected")
+    assert sent == []
+
+
+def test_feedback_is_not_offered_for_an_uncollected_order(client, login, make_item):
+    owner, token, item = bearer(login(OWNER)), login(), make_item()
+    oid = place(client, token, item).json()["id"]
+    status(client, owner, oid, "ready")
+    status(client, owner, oid, "not_collected")
+    r = client.post(f"/api/orders/{oid}/feedback", headers=bearer(token),
+                    json={"ratings": [{"menu_item_id": item["id"], "rating": 5}]})
+    assert r.status_code == 400
