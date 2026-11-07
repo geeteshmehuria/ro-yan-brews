@@ -1,7 +1,7 @@
 import pytest
 
-from app import auth
-from app.db import SessionLocal
+from app.core import auth
+from app.db.session import SessionLocal
 from app.models import Customer
 
 from conftest import OWNER

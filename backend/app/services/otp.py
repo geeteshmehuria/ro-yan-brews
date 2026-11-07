@@ -12,9 +12,9 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from . import mailer
-from .auth import IS_PROD
-from .clock import utcnow
-from .models import OtpCode
+from ..core.auth import IS_PROD
+from ..core.clock import utcnow
+from ..models import OtpCode
 
 log = logging.getLogger("royan.otp")
 logging.basicConfig(level=logging.INFO)

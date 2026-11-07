@@ -1,4 +1,4 @@
-from app.db import SessionLocal
+from app.db.session import SessionLocal
 from app.models import Feedback
 
 from conftest import OWNER, bearer, place

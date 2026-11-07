@@ -26,7 +26,7 @@ Render's free tier allows one Postgres and it is taken, so use a free Neon proje
 4. Optional — Google sign-in: Google Cloud Console → APIs & Services → Credentials → **Create OAuth client ID** (Web application). Under **Authorized JavaScript origins** add your Vercel URL (and `http://localhost:5173` for dev). Put the client ID in Render as `GOOGLE_CLIENT_ID`. Leave it unset and Google login is simply off — the button is hidden and the endpoint refuses (it is never "on without a client ID").
 5. When it's live, open `https://<your-service>.onrender.com/api/health` — expect `{"ok":true}`.
 
-The menu starts **empty** in production (the placeholder menu is only for dev). Put the real menu in `backend/app/seed.py` and set `SEED_MENU=true` once, then unset it.
+The menu starts **empty** in production (the placeholder menu is only for dev). Put the real menu in `backend/app/db/seed.py` and set `SEED_MENU=true` once, then unset it.
 
 ## 4. Frontend on Vercel
 

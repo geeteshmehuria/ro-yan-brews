@@ -1,7 +1,7 @@
 from datetime import timedelta
 
-from app.clock import days_start, to_ist, today_start, utcnow
-from app.db import SessionLocal
+from app.core.clock import days_start, to_ist, today_start, utcnow
+from app.db.session import SessionLocal
 from app.models import Order
 
 from conftest import OWNER, bearer, place

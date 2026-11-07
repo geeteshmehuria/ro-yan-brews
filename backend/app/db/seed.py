@@ -1,7 +1,7 @@
 # TODO real menu from owner — placeholder items/prices until the stall poster is provided
 from sqlalchemy.orm import Session
 
-from .models import MenuItem
+from ..models import MenuItem
 
 SEED = [
     ("Shakes", [("Oreo Shake", None, 80), ("KitKat Shake", None, 90),

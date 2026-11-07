@@ -2,8 +2,8 @@ from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer,
                         String, Text, UniqueConstraint)
 from sqlalchemy.orm import relationship
 
-from .clock import utcnow
-from .db import Base
+from .core.clock import utcnow
+from .db.session import Base
 
 ORDER_STATUSES = ["placed", "preparing", "ready", "completed"]  # the forward-only ladder
 CANCELLED = "cancelled"  # off the ladder: only reachable from placed/preparing

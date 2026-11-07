@@ -1,8 +1,8 @@
 from datetime import timedelta
 
-from app import mailer, otp_service, request_log
-from app.clock import utcnow
-from app.db import SessionLocal
+from app.services import mailer, otp, request_log
+from app.core.clock import utcnow
+from app.db.session import SessionLocal
 from app.models import TLog
 
 from conftest import bearer
@@ -64,7 +64,7 @@ def test_email_failure_records_the_real_reason(client, monkeypatch):
 def test_unhandled_exception_is_logged_with_traceback_and_returns_500(client, monkeypatch):
     def broken(*a, **k):
         raise RuntimeError("kaboom")
-    monkeypatch.setattr(otp_service, "send_otp", broken)
+    monkeypatch.setattr(otp, "send_otp", broken)
     r = client.post("/api/otp/send", json={"email": "who@x.com"})
     assert r.status_code == 500 and r.json() == {"detail": "Internal Server Error"}
     (row,) = rows()

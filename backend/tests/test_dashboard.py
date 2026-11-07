@@ -1,7 +1,7 @@
 from datetime import timedelta
 
-from app.clock import utcnow
-from app.db import SessionLocal
+from app.core.clock import utcnow
+from app.db.session import SessionLocal
 from app.models import Order
 
 from conftest import OWNER, bearer, place
@@ -172,7 +172,7 @@ def test_not_collected_frees_the_customers_order_slot(client, login, make_item, 
 
 
 def test_not_collected_sends_the_customer_no_notification(client, login, make_item, monkeypatch):
-    from app import push
+    from app.services import push
     sent = []
     monkeypatch.setattr(push, "_send", lambda *a, **k: sent.append(a))
     owner, token = bearer(login(OWNER)), login()

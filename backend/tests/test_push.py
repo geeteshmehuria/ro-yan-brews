@@ -1,5 +1,6 @@
-from app import auth, push
-from app.db import SessionLocal
+from app.core import auth
+from app.services import push
+from app.db.session import SessionLocal
 from app.models import PushToken, TLog
 
 from conftest import OWNER, bearer, place

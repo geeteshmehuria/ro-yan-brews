@@ -3,9 +3,9 @@ import logging
 from datetime import timedelta
 from typing import Optional
 
-from .clock import utcnow
-from .db import SessionLocal
-from .models import TLog
+from ..core.clock import utcnow
+from ..db.session import SessionLocal
+from ..models import TLog
 
 log = logging.getLogger("royan.tlog")
 RETENTION_DAYS = 30

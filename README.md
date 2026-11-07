@@ -9,6 +9,51 @@ Pickup-only ordering app for the Ro-Yan fast food stall. Ocean glass UI. Email +
 - `render.yaml` — Render blueprint (API). `frontend/vercel.json` — Vercel SPA config.
 - `SPEC.md` — product decisions and v1/v2 scope. `DEPLOY-STEPS.md` — how to deploy. `CLAUDE.md` — architecture notes.
 
+### Backend layout (`backend/app/`)
+
+```
+main.py              creates the FastAPI app: startup, CORS, failure log, routes
+api/
+  router.py          mounts every route module
+  routes/            one file per feature (thin: check input + auth, call services, return JSON)
+    public.py          health, Open/Paused status, menu
+    login.py           email code + Google login
+    profile.py         the customer's name
+    orders.py          place, list, cancel, rate an order
+    admin_orders.py    owner: queue, status changes, stock, Open/Paused
+    admin_menu.py      owner: add / edit / remove / restore menu items
+    admin_reports.py   owner: today's numbers, reports, reviews, failure log
+    push_tokens.py     Android push-notification tokens
+    websockets.py      live channels /ws/admin, /ws/me, /ws/menu
+core/                app-wide plumbing
+  auth.py            JWT sessions, owner check, Google token check
+  clock.py           all time handling (UTC storage, IST stall day)
+  config.py          settings from the environment
+  middleware.py      failure log: records failed requests in the t_log table
+db/
+  session.py         engine, sessions, auto-added columns
+  seed.py            placeholder menu for local dev
+services/            business logic and outside services
+  orders.py          order JSON shape, live announcements, "ready" email, Open/Paused
+  otp.py             login codes: create, send, check, rate limits
+  mailer.py          the one email sender (SMTP)
+  push.py            Firebase push notifications
+  request_log.py     writes / prunes the failure log
+  ws_manager.py      WebSocket connection pools
+models.py            database tables (SQLAlchemy)
+schemas.py           request validation (Pydantic)
+```
+
+### Frontend layout (`frontend/src/`)
+
+```
+main.jsx       entry point: routes / (customer) and /admin (owner)
+admin/         owner dashboard screens        customer/   customer screens
+components/    shared UI (buttons, dialogs)   hooks/      sockets, Android Back, animations
+services/      API client, push               config/     constants
+utils/         sounds and title alerts        styles/     theme + Tailwind
+```
+
 ## Run locally
 
 Backend:
@@ -58,7 +103,7 @@ cd backend && python -m pytest tests -q
 - Runs as **one** backend process (live updates and order numbering are in memory).
 - "Today" (order numbers, admin stats) is the stall's IST day.
 - Login codes are limited per email (3 sends / 10 min, 5 wrong tries), not per IP.
-- Menu seed is placeholder until the real stall menu is provided (`backend/app/seed.py`); production starts with an **empty** menu.
+- Menu seed is placeholder until the real stall menu is provided (`backend/app/db/seed.py`); production starts with an **empty** menu.
 
 ## v2 backlog (deliberately not built)
 
