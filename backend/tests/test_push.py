@@ -1,7 +1,7 @@
-from app.core import auth
-from app.services import push
-from app.db.session import SessionLocal
-from app.models import PushToken, TLog
+from app.shared import auth
+from app.features.notifications import push_service
+from app.shared.database import SessionLocal
+from app.shared.models import PushToken, TLog
 
 from conftest import OWNER, bearer, place
 
@@ -24,8 +24,8 @@ class FakeSession:
 
 def fake_fcm(monkeypatch, response=None) -> FakeSession:
     session = FakeSession(response)
-    monkeypatch.setattr(push, "_KEY", "{}")
-    monkeypatch.setattr(push, "_client", lambda: (session, "https://fcm.test"))
+    monkeypatch.setattr(push_service, "_KEY", "{}")
+    monkeypatch.setattr(push_service, "_client", lambda: (session, "https://fcm.test"))
     return session
 
 
@@ -74,7 +74,7 @@ def test_dead_token_is_dropped_and_order_still_works(client, login, make_item, m
 
 def test_no_push_without_firebase_key(client, login, make_item, monkeypatch):
     fcm = fake_fcm(monkeypatch)
-    monkeypatch.setattr(push, "_KEY", "")
+    monkeypatch.setattr(push_service, "_KEY", "")
     client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
     assert place(client, login(), make_item()).status_code == 201
     assert fcm.sent == []
@@ -124,7 +124,7 @@ def test_customer_gets_their_order_progress(client, login, make_item, monkeypatc
         client.patch(f"/api/admin/orders/{order['id']}/status", json={"status": status}, headers=owner)
         msg = fcm.sent[-1]
         assert msg["token"] == PHONE and msg["data"] == {"order_id": str(order["id"]), "kind": status}
-        assert msg["android"]["notification"]["channel_id"] == push.CUSTOMER_CHANNEL_ID
+        assert msg["android"]["notification"]["channel_id"] == push_service.CUSTOMER_CHANNEL_ID
         assert msg["android"]["notification"]["tag"] == f"my-order-{order['id']}"  # replaces the last one
         titles.append(msg["notification"]["title"])
     assert len(fcm.sent) == 3

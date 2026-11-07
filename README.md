@@ -11,37 +11,47 @@ Pickup-only ordering app for the Ro-Yan fast food stall. Ocean glass UI. Email +
 
 ### Backend layout (`backend/app/`)
 
+Feature-based: everything about one feature sits in one folder — its routes (`*_router.py`),
+its logic (`*_service.py`) and its request bodies (`*_schemas.py`).
+
 ```
-main.py              creates the FastAPI app: startup, CORS, failure log, routes
-api/
-  router.py          mounts every route module
-  routes/            one file per feature (thin: check input + auth, call services, return JSON)
-    public.py          health, Open/Paused status, menu
-    login.py           email code + Google login
-    profile.py         the customer's name
-    orders.py          place, list, cancel, rate an order
-    admin_orders.py    owner: queue, status changes, stock, Open/Paused
-    admin_menu.py      owner: add / edit / remove / restore menu items
-    admin_reports.py   owner: today's numbers, reports, reviews, failure log
-    push_tokens.py     Android push-notification tokens
-    websockets.py      live channels /ws/admin, /ws/me, /ws/menu
-core/                app-wide plumbing
-  auth.py            JWT sessions, owner check, Google token check
-  clock.py           all time handling (UTC storage, IST stall day)
-  config.py          settings from the environment
-  middleware.py      failure log: records failed requests in the t_log table
-db/
-  session.py         engine, sessions, auto-added columns
-  seed.py            placeholder menu for local dev
-services/            business logic and outside services
-  orders.py          order JSON shape, live announcements, "ready" email, Open/Paused
-  otp.py             login codes: create, send, check, rate limits
-  mailer.py          the one email sender (SMTP)
-  push.py            Firebase push notifications
-  request_log.py     writes / prunes the failure log
-  ws_manager.py      WebSocket connection pools
-models.py            database tables (SQLAlchemy)
-schemas.py           request validation (Pydantic)
+main.py                  creates the FastAPI app: startup, CORS, failure log, routes
+router.py                mounts every feature's router
+features/
+  auth/                  login with an emailed code or Google
+    auth_router.py         /api/auth/mode, /api/otp/send, /api/otp/verify, /api/auth/google
+    auth_schemas.py
+    otp_service.py         codes: create, email, check, rate limits
+  profile/               the customer's name            (profile_router, profile_schemas)
+  menu/
+    menu_router.py         public menu
+    menu_admin_router.py   owner: add / edit / remove / restore / delete, stock on/off
+    menu_service.py        shared menu helpers
+    menu_schemas.py
+    menu_seed.py           placeholder menu for local dev
+  orders/
+    orders_router.py       customer: place, list, cancel
+    orders_admin_router.py owner: the queue and status changes
+    orders_service.py      order JSON shape, live announcements, "ready" email
+    orders_schemas.py
+  feedback/              customer ratings + the owner's review list
+  store/                 the Open / Paused switch
+  reports/               owner: today's numbers and reports
+  notifications/         Android push: token routes + Firebase sending
+  live/                  WebSocket channels /ws/admin, /ws/me, /ws/menu
+  health/                /api/health for Render
+middleware/
+  failure_log.py         records failed requests in the t_log table
+shared/                  used by many features
+  database.py            engine, sessions, auto-added columns
+  models.py              all database tables (they reference each other, so they stay together)
+  auth.py                JWT sessions, owner check, Google token check
+  clock.py               all time handling (UTC storage, IST stall day)
+  config.py              settings from the environment
+  mailer.py              the one email sender (SMTP)
+  request_log.py         writes / prunes the failure log
+  validation.py          small input-cleaning helpers
+  ws_manager.py          WebSocket connection pools
 ```
 
 ### Frontend layout (`frontend/src/`)
@@ -103,7 +113,7 @@ cd backend && python -m pytest tests -q
 - Runs as **one** backend process (live updates and order numbering are in memory).
 - "Today" (order numbers, admin stats) is the stall's IST day.
 - Login codes are limited per email (3 sends / 10 min, 5 wrong tries), not per IP.
-- Menu seed is placeholder until the real stall menu is provided (`backend/app/db/seed.py`); production starts with an **empty** menu.
+- Menu seed is placeholder until the real stall menu is provided (`backend/app/features/menu/menu_seed.py`); production starts with an **empty** menu.
 
 ## v2 backlog (deliberately not built)
 

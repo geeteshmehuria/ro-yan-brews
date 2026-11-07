@@ -17,3 +17,4 @@ venv/
 .idea/
 # Firebase app config of the Android app: kept local, not pushed (see docs/ANDROID.md, Phase 3)
 frontend/android/app/google-services.json
+.ruff_cache/

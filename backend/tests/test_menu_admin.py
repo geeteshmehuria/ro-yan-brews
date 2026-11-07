@@ -1,5 +1,5 @@
-from app.db.session import SessionLocal
-from app.models import MenuItem
+from app.shared.database import SessionLocal
+from app.shared.models import MenuItem
 
 from conftest import OWNER, bearer, my_order, place
 

@@ -6,11 +6,12 @@ from datetime import timedelta
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from app.core import auth, clock
-from app.services import mailer, otp
-from app.core.clock import utcnow
-from app.db.session import SessionLocal
-from app.models import MenuItem, Order, OtpCode
+from app.shared import auth, clock
+from app.shared import mailer
+from app.features.auth import otp_service
+from app.shared.clock import utcnow
+from app.shared.database import SessionLocal
+from app.shared.models import MenuItem, Order, OtpCode
 
 from conftest import DEV_CODE, OWNER, bearer, my_order, place
 
@@ -47,7 +48,7 @@ def test_otp_is_six_digits(client):
 
 
 def test_real_code_works_without_dev_mode(client, monkeypatch):
-    monkeypatch.setattr(otp, "OTP_DEV_MODE", False)
+    monkeypatch.setattr(otp_service, "OTP_DEV_MODE", False)
     client.post("/api/otp/send", json={"email": "real@x.com"})
     with SessionLocal() as db:
         code = db.query(OtpCode).filter_by(email="real@x.com").first().code
@@ -101,21 +102,21 @@ def test_old_otp_rows_are_cleaned_up(client):
 
 def test_auth_mode_reports_dev_mode(client, monkeypatch):
     assert client.get("/api/auth/mode").json()["dev_mode"] is True
-    monkeypatch.setattr(otp, "OTP_DEV_MODE", False)
+    monkeypatch.setattr(otp_service, "OTP_DEV_MODE", False)
     assert client.get("/api/auth/mode").json()["dev_mode"] is False
 
 
 def test_dev_mode_is_impossible_in_production():
     env = {**os.environ, "ENV": "production", "OTP_DEV_MODE": "true"}
     out = subprocess.run(
-        [sys.executable, "-c", "from app.services import otp; print(otp.OTP_DEV_MODE)"],
+        [sys.executable, "-c", "from app.features.auth import otp_service; print(otp_service.OTP_DEV_MODE)"],
         env=env, capture_output=True, text=True, cwd=os.path.dirname(os.path.dirname(__file__)),
     )
     assert out.stdout.strip().splitlines()[-1] == "False", out.stderr
 
 
 def test_production_without_smtp_refuses_to_send(client, monkeypatch):
-    monkeypatch.setattr(otp, "IS_PROD", True)
+    monkeypatch.setattr(otp_service, "IS_PROD", True)
     monkeypatch.setattr(mailer, "SMTP_USER", "")
     assert client.post("/api/otp/send", json={"email": "p@x.com"}).status_code == 503
 
@@ -338,7 +339,7 @@ def test_deliver_sends_mail_over_smtp(monkeypatch):
     monkeypatch.setattr(mailer, "SMTP_PORT", 465)
     monkeypatch.setattr(smtplib, "SMTP_SSL", _FakeSMTP)
     _FakeSMTP.sent = []
-    otp.deliver("dest@x.com", "567890")
+    otp_service.deliver("dest@x.com", "567890")
     assert _FakeSMTP.last_login == ("stall@gmail.com", "app-password")
     _, to, body = _FakeSMTP.sent[0]
     assert to == ["dest@x.com"] and "567890" in body
@@ -356,7 +357,7 @@ def test_smtp_auth_failure_gives_friendly_503(monkeypatch):
     monkeypatch.setattr(mailer, "SMTP_PORT", 465)
     monkeypatch.setattr(smtplib, "SMTP_SSL", _AuthFail)
     with pytest.raises(HTTPException) as e:
-        otp.deliver("dest@x.com", "567890")
+        otp_service.deliver("dest@x.com", "567890")
     assert e.value.status_code == 503
 
 

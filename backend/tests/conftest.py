@@ -19,9 +19,9 @@ os.environ.update(
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db.session import Base, SessionLocal, engine
+from app.shared.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import MenuItem
+from app.shared.models import MenuItem
 
 atexit.register(shutil.rmtree, _tmp, ignore_errors=True)
 
