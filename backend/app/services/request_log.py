@@ -1,7 +1,6 @@
 """Writes failures to the t_log table. Logging must never break a request, so nothing here raises."""
 import logging
 from datetime import timedelta
-from typing import Optional
 
 from ..core.clock import utcnow
 from ..db.session import SessionLocal

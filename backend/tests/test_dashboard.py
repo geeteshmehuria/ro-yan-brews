@@ -27,7 +27,7 @@ def test_cash_is_only_counted_once_an_order_is_done(client, login, make_item):
     assert s["cash_collected"] == 100 and s["completed"] == 1
     assert s["to_collect"] == 200  # ready + placed: not paid yet
     assert s["active"] == {"placed": 1, "preparing": 0, "ready": 1}
-    assert s["orders"] == 3 and s["revenue"] == 100
+    assert s["orders"] == 3 and s["cash_collected"] == 100
 
 
 def test_yesterdays_unfinished_order_is_still_to_collect(client, login, make_item):

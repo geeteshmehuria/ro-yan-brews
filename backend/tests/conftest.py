@@ -62,6 +62,11 @@ def bearer(token: str) -> dict:
     return {"authorization": f"Bearer {token}"}
 
 
+def my_order(client, token, order_id) -> dict:
+    """One of the customer's orders, as the app sees it (from "my orders")."""
+    return next(o for o in client.get("/api/orders/mine", headers=bearer(token)).json() if o["id"] == order_id)
+
+
 def place(client, token, item, size="na", qty=2):
     body = {"items": [{"menu_item_id": item["id"], "size": size, "qty": qty}]}
     return client.post("/api/orders", json=body, headers=bearer(token))

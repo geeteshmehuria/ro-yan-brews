@@ -41,18 +41,3 @@ def remove_push_token(body: PushTokenIn, request: Request, db: Session = Depends
     db.query(PushToken).filter_by(token=body.token).delete()
     db.commit()
     return {"removed": True}
-
-
-# The owner-only originals, still called by app versions up to 1.6.
-@router.post("/api/admin/push-token")
-def register_admin_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
-    _save_push_token(db, body.token, auth.require_admin(request))
-    return {"registered": True, "enabled": push.configured()}
-
-
-@router.post("/api/admin/push-token/remove")
-def remove_admin_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
-    auth.require_admin(request)
-    db.query(PushToken).filter_by(token=body.token).delete()
-    db.commit()
-    return {"removed": True}

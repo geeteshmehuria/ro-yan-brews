@@ -12,7 +12,7 @@ from app.core.clock import utcnow
 from app.db.session import SessionLocal
 from app.models import MenuItem, Order, OtpCode
 
-from conftest import DEV_CODE, OWNER, bearer, place
+from conftest import DEV_CODE, OWNER, bearer, my_order, place
 
 
 # ---------------- menu ----------------
@@ -173,8 +173,7 @@ def test_order_price_snapshot(client, login, make_item):
     with SessionLocal() as db:
         db.query(MenuItem).filter_by(id=item["id"]).update({"price_full": 999})
         db.commit()
-    r = client.get(f"/api/orders/{order['id']}", headers=bearer(token))
-    assert r.json()["total"] == 160  # snapshot survives price change
+    assert my_order(client, token, order["id"])["total"] == 160  # snapshot survives price change
 
 
 def test_half_size_pricing(client, login, make_item):
@@ -198,11 +197,13 @@ def test_order_numbers_are_sequential_and_reset_daily(client, login, make_item):
 
 
 def test_order_isolation_between_customers(client, login, make_item):
-    """Customer B must never be able to read customer A's order."""
+    """Customer B must never be able to see or touch customer A's order."""
     order_a = place(client, login("aa@x.com"), make_item()).json()
-    r = client.get(f"/api/orders/{order_a['id']}", headers=bearer(login("bb@x.com")))
+    token_b = login("bb@x.com")
+    assert client.get("/api/orders/mine", headers=bearer(token_b)).json() == []
+    r = client.post(f"/api/orders/{order_a['id']}/cancel", headers=bearer(token_b))
     assert r.status_code == 404  # not 403 - don't even confirm the order exists
-    assert client.get(f"/api/orders/{order_a['id']}").status_code == 401
+    assert client.get("/api/orders/mine").status_code == 401
 
 
 def test_order_size_is_capped(client, login, make_item):
@@ -296,7 +297,7 @@ def test_stats_today(client, login, make_item):
     place(client, login(), make_item("Oreo Shake", full=80))
     stats = client.get("/api/admin/stats/today", headers=admin).json()
     assert (stats["orders"], stats["top_item"]) == (1, "Oreo Shake")
-    assert (stats["cash_collected"], stats["to_collect"], stats["revenue"]) == (0, 160, 0)  # not paid yet
+    assert (stats["cash_collected"], stats["to_collect"]) == (0, 160)  # not paid yet
 
 
 # ---------------- websockets ----------------

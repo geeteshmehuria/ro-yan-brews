@@ -1,6 +1,6 @@
 import { CART_KEY, CHECKOUT_KEY, TOKEN_KEY } from "../config/constants.js";
 
-export const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 export const WS_BASE = import.meta.env.VITE_WS_URL || API.replace(/^http/, "ws");
 
 export function getToken() {

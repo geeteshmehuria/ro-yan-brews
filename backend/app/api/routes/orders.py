@@ -128,12 +128,3 @@ def give_feedback(order_id: int, body: FeedbackIn, request: Request, db: Session
         db.rollback()
         raise HTTPException(409, "You've already rated this order — thank you!")
     return {"order_id": order.id, "reviewed": True}
-
-
-@router.get("/api/orders/{order_id}")
-def get_order(order_id: int, request: Request, db: Session = Depends(get_db)) -> dict:
-    session = auth.current_customer(request)
-    order = db.get(Order, order_id, options=ORDER_LOAD)
-    if order is None or order.customer_id != session["cid"]:
-        raise HTTPException(404, "Order not found")
-    return order_payload(order)

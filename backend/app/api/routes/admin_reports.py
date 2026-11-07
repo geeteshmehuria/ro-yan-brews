@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from ...core import auth
 from ...core.clock import days_start, to_ist, today_start
 from ...db.session import get_db
-from ...models import CANCELLED, CLOSED, NOT_COLLECTED, Feedback, MenuItem, Order, TLog
+from ...models import CANCELLED, CLOSED, NOT_COLLECTED, Feedback, MenuItem, Order
 from ...services.orders import ORDER_LOAD, accepting_orders, todays_orders
 
 router = APIRouter(tags=["admin"])
@@ -50,7 +50,6 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
         "out_of_stock": out_of_stock,
         "accepting_orders": accepting_orders(db),
         "top_item": top,
-        "revenue": cash,  # old app versions (<= 1.9) show this as "Revenue": now the cash actually collected
     }
 
 
@@ -133,24 +132,3 @@ def admin_feedback(request: Request, db: Session = Depends(get_db)) -> dict:
             "allow_public": f.allow_public, "created_at": f.created_at.isoformat(),
         } for f in recent],
     }
-
-
-@router.get("/api/admin/logs")
-def get_admin_logs(limit: int = 50, request: Request = None, db: Session = Depends(get_db)) -> list:
-    auth.require_admin(request)
-    logs = db.query(TLog).order_by(TLog.created_at.desc()).limit(min(limit, 200)).all()
-    return [
-        {
-            "id": l.id,
-            "created_at": l.created_at.isoformat(),
-            "method": l.method,
-            "path": l.path,
-            "status": l.status,
-            "duration_ms": l.duration_ms,
-            "error": l.error,
-            "client_ip": l.client_ip,
-            "origin": l.origin,
-            "user_email": l.user_email,
-        }
-        for l in logs
-    ]

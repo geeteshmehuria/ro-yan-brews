@@ -21,11 +21,11 @@ def test_successful_requests_are_not_logged(client):
 
 def test_failed_request_is_logged_with_request_info(client, login):
     token = login("someone@x.com")
-    r = client.get("/api/orders/999", headers={**bearer(token), "user-agent": "pytest-agent",
-                                               "x-forwarded-for": "203.0.113.9, 10.0.0.1"})
+    r = client.post("/api/orders/999/cancel", headers={**bearer(token), "user-agent": "pytest-agent",
+                                                       "x-forwarded-for": "203.0.113.9, 10.0.0.1"})
     assert r.status_code == 404
     (row,) = rows()
-    assert (row.method, row.path, row.status) == ("GET", "/api/orders/999", 404)
+    assert (row.method, row.path, row.status) == ("POST", "/api/orders/999/cancel", 404)
     assert row.error == "Order not found"
     assert row.user_email == "someone@x.com" and row.user_agent == "pytest-agent"
     assert row.client_ip == "203.0.113.9" and row.duration_ms is not None

@@ -5,7 +5,7 @@ export const LABELS = { placed: "Placed", preparing: "Preparing", ready: "Ready"
 // Orders that are finished one way or the other (no more status changes coming).
 // Keep in sync with CLOSED in backend/app/models.py. "not_collected": ready but never picked up
 // (the owner closes it, no cash).
-export const CLOSED = ["completed", "cancelled", "not_collected"];
+const CLOSED = ["completed", "cancelled", "not_collected"];
 export const isActive = (order) => !CLOSED.includes(order.status);
 export const ICONS = { Shakes: "🥤", Burgers: "🍔", Sandwiches: "🥪", Momos: "🥟", Fries: "🍟" };
 // Built as the Android app (npm run build:android, .env.android)? Google sign-in is hidden

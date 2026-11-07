@@ -7,7 +7,7 @@ Pickup-only ordering app for the Ro-Yan fast food stall. Ocean glass UI. Email +
 - `frontend/` — React (Vite) + Tailwind. Customer app at `/`, owner dashboard at `/admin`.
 - `backend/` — FastAPI + SQLAlchemy. SQLite locally, PostgreSQL in production. WebSockets for live updates.
 - `render.yaml` — Render blueprint (API). `frontend/vercel.json` — Vercel SPA config.
-- `SPEC.md` — product decisions and v1/v2 scope. `DEPLOY-STEPS.md` — how to deploy. `CLAUDE.md` — architecture notes.
+- `docs/` — `SPEC.md` (product decisions, v1/v2 scope), `DEPLOY-STEPS.md` (how to deploy), `ANDROID.md` (the Android app), `ui-prototype-v2.html` (design reference). `CLAUDE.md` — architecture notes.
 
 ### Backend layout (`backend/app/`)
 
