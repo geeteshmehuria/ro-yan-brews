@@ -90,8 +90,13 @@ npm run dev        # http://localhost:5173
 ## Tests
 
 ```
-cd backend && python -m pytest tests -q
+cd backend
+python -m pytest                          # all tests
+python -m pytest tests/features/orders    # one feature
 ```
+
+`backend/tests/` mirrors `backend/app/`: `tests/features/<feature>/` (auth, profile, menu, orders, feedback,
+store, reports, notifications, live), `tests/shared/` and `tests/middleware/`. Shared fixtures are in `tests/conftest.py`.
 
 ## Environment variables (backend)
 

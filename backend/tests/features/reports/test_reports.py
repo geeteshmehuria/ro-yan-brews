@@ -1,10 +1,11 @@
+"""The Today tab reports: summaries, daily cash, top items, busy hours."""
 from datetime import timedelta
+
+from conftest import OWNER, bearer, place
 
 from app.shared.clock import days_start, to_ist, today_start, utcnow
 from app.shared.database import SessionLocal
 from app.shared.models import Order
-
-from conftest import OWNER, bearer, place
 
 
 def status(client, owner, oid, st):
@@ -25,25 +26,6 @@ def report(client, owner, days=7):
     r = client.get(f"/api/admin/reports?days={days}", headers=owner)
     assert r.status_code == 200
     return r.json()
-
-
-def test_reports_are_owner_only(client, login):
-    assert client.get("/api/admin/reports").status_code == 401
-    assert client.get("/api/admin/reports", headers=bearer(login())).status_code == 403
-
-
-def test_today_summary(client, login, make_item):
-    owner, item = bearer(login(OWNER)), make_item(full=100)
-    tokens = [login(f"c{n}@x.com") for n in range(4)]
-    a, b, c, d = (place(client, t, item, qty=1).json()["id"] for t in tokens)
-    status(client, owner, a, "completed")
-    status(client, owner, b, "completed")
-    client.post(f"/api/orders/{c}/cancel", headers=bearer(tokens[2]))
-    status(client, owner, d, "ready")
-    status(client, owner, d, "not_collected")
-    t = report(client, owner)["today"]
-    assert (t["orders"], t["completed"], t["cancelled"], t["not_collected"]) == (3, 2, 1, 1)
-    assert (t["cash"], t["average"], t["in_progress"]) == (200, 100, 0)
 
 
 def test_daily_cash_counts_on_the_day_it_was_paid(client, login, make_item):
@@ -71,6 +53,31 @@ def test_older_days_fall_outside_the_range(client, login, make_item):
     shift(oid, created=days_start(7) - timedelta(hours=1), completed=days_start(7) - timedelta(hours=1))
     assert report(client, owner)["period"]["cash"] == 0
     assert report(client, owner, days=30)["period"]["cash"] == 90
+
+
+def test_days_are_clamped(client, login):
+    owner = bearer(login(OWNER))
+    assert report(client, owner, days=0)["days"] == 1
+    assert len(report(client, owner, days=500)["daily"]) == 90
+
+
+def test_reports_are_owner_only(client, login):
+    assert client.get("/api/admin/reports").status_code == 401
+    assert client.get("/api/admin/reports", headers=bearer(login())).status_code == 403
+
+
+def test_today_summary(client, login, make_item):
+    owner, item = bearer(login(OWNER)), make_item(full=100)
+    tokens = [login(f"c{n}@x.com") for n in range(4)]
+    a, b, c, d = (place(client, t, item, qty=1).json()["id"] for t in tokens)
+    status(client, owner, a, "completed")
+    status(client, owner, b, "completed")
+    client.post(f"/api/orders/{c}/cancel", headers=bearer(tokens[2]))
+    status(client, owner, d, "ready")
+    status(client, owner, d, "not_collected")
+    t = report(client, owner)["today"]
+    assert (t["orders"], t["completed"], t["cancelled"], t["not_collected"]) == (3, 2, 1, 1)
+    assert (t["cash"], t["average"], t["in_progress"]) == (200, 100, 0)
 
 
 def test_top_items_use_sold_prices_and_split_half_and_full(client, login, make_item):
@@ -101,9 +108,3 @@ def test_busiest_hours_count_placed_orders_by_ist_hour(client, login, make_item)
     client.post(f"/api/orders/{ids[2]}/cancel", headers=bearer(login("h2@x.com")))
     hours = report(client, owner)["hours"]
     assert len(hours) == 24 and hours[to_ist(at).hour] == 2 and sum(hours) == 2  # cancelled not counted
-
-
-def test_days_are_clamped(client, login):
-    owner = bearer(login(OWNER))
-    assert report(client, owner, days=0)["days"] == 1
-    assert len(report(client, owner, days=500)["daily"]) == 90
