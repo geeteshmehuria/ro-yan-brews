@@ -42,7 +42,7 @@ function Dialog({ d, close }) {
       onClick={() => close(false)}>
       <div role="alertdialog" aria-modal="true" aria-labelledby="dlg-title" aria-describedby={d.message ? "dlg-msg" : undefined}
         onClick={(e) => e.stopPropagation()}
-        className="screen-in w-full max-w-[400px] rounded-glass border border-[var(--stroke)] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+        className="screen-in w-full max-w-[400px] rounded-glass border border-[var(--stroke)] p-5 shadow-dialog"
         style={{ background: "var(--bg2)" }}>
         <div className="flex items-start gap-3">
           <span className="text-2xl leading-none" aria-hidden="true">{tone.icon}</span>

@@ -49,7 +49,7 @@ function Hero() {
       </h1>
       <p className="mt-2 text-sm text-muted">Shakes · Burgers · Sandwiches · Momos · Fries</p>
       <a href="#cat-Shakes"
-        className="press mt-4 inline-block rounded-xl bg-accent px-8 py-3.5 font-black text-bg1 shadow-[0_6px_24px_rgba(56,189,248,0.45)]">
+        className="press mt-4 inline-block rounded-xl bg-accent px-8 py-3.5 font-black text-bg1 shadow-[0_6px_24px_var(--accent-glow)]">
         Order Now ↓
       </a>
     </section>
@@ -58,8 +58,7 @@ function Hero() {
 
 function Chips({ menu, active, setActive }) {
   return (
-    <div className="sticky top-[var(--sat)] z-30 flex gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none]"
-      style={{ background: "linear-gradient(180deg, rgba(10,20,32,0.88), transparent)" }}>
+    <div className="sticky top-[calc(var(--sat)+4.25rem)] z-30 flex gap-2 overflow-x-auto px-3 py-3 [scrollbar-width:none] bg-gradient-to-b from-bar to-transparent">
       {menu.map((g) => (
         <button key={g.category}
           onClick={() => {
@@ -111,7 +110,7 @@ function ItemCard({ item, size, setSize, qty, changeQty }) {
         </div>
       ) : (
         <button onClick={() => changeQty(1)}
-          className="press flex-none rounded-xl bg-accent px-5 py-3 text-sm font-black text-bg1 shadow-[0_4px_18px_rgba(56,189,248,0.4)]">
+          className="press flex-none rounded-xl bg-accent px-5 py-3 text-sm font-black text-bg1 shadow-[0_4px_18px_var(--accent-glow)]">
           ADD
         </button>
       ))}
@@ -156,7 +155,7 @@ export default function MenuScreen({ paused, menu, error, retry, cart, totals, s
           <main className="px-3">
             {menu.map((g) => (
               <section key={g.category}>
-                <div id={`cat-${g.category}`} className="mb-3 mt-6 flex items-center gap-2 text-lg font-black [scroll-margin-top:70px]">
+                <div id={`cat-${g.category}`} className="mb-3 mt-6 flex items-center gap-2 text-lg font-black [scroll-margin-top:calc(var(--sat)+8.5rem)]">
                   <span className="text-xl">{ICONS[g.category] || "🍽"}</span>{g.category}
                   <span className="h-px flex-1 bg-gradient-to-r from-[var(--stroke)] to-transparent" />
                 </div>
@@ -177,10 +176,9 @@ export default function MenuScreen({ paused, menu, error, retry, cart, totals, s
       )}
       {/* floating cart bar */}
       <div onClick={totals.count ? openCart : undefined}
-        className={`cartbar-anim fixed bottom-[calc(var(--sab)+0.875rem)] left-1/2 z-50 flex w-[calc(100%-1.75rem)] max-w-[492px] -translate-x-1/2 cursor-pointer items-center justify-between rounded-glass border border-[var(--stroke)] px-4 py-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl ${
+        className={`cartbar-anim fixed bottom-[calc(var(--sab)+0.875rem)] left-1/2 z-50 flex w-[calc(100%-1.75rem)] max-w-[492px] -translate-x-1/2 cursor-pointer items-center justify-between rounded-glass border border-[var(--stroke)] bg-bar-soft px-4 py-3.5 shadow-float backdrop-blur-xl ${
           totals.count ? "translate-y-0" : "translate-y-[calc(100%+var(--sab)+1.5rem)]"
-        }`}
-        style={{ background: "rgba(10, 20, 32, 0.75)" }}>
+        }`}>
         <div>
           <b className="text-accent">{totals.count} {totals.count === 1 ? "item" : "items"}</b>
           <span className="ml-1.5">₹{totals.total}</span>

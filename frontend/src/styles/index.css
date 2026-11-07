@@ -18,6 +18,11 @@
   --warn: #f59e0b;                          /* "needs attention": waiting orders, out-of-stock */
   --warn-soft: rgba(245, 158, 11, 0.1);
   --star: #facc15;                          /* rating stars */
+  --bar: rgba(10, 20, 32, 0.85);            /* floating bars: admin tab bar, menu category strip */
+  --bar-soft: rgba(10, 20, 32, 0.75);       /* customer cart bar */
+  --accent-glow: rgba(56, 189, 248, 0.4);   /* glow under accent buttons */
+  --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.45); /* bars pinned to the bottom */
+  --shadow-dialog: 0 20px 60px rgba(0, 0, 0, 0.5);
   --radius: 18px;
   --blur: 18px;
   /* Edge-to-edge: the page runs under the status bar and the navigation bar (viewport-fit=cover),

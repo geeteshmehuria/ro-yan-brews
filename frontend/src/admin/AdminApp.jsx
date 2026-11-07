@@ -294,8 +294,7 @@ export default function AdminApp() {
       {tab === "reviews" && <FeedbackSection alwaysOpen />}
 
       <nav aria-label="Admin sections"
-        className="fixed bottom-[calc(var(--sab)+0.75rem)] left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-[496px] -translate-x-1/2 justify-around rounded-glass border border-[var(--stroke)] px-1 py-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl"
-        style={{ background: "rgba(10, 20, 32, 0.85)" }}>
+        className="fixed bottom-[calc(var(--sab)+0.75rem)] left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-[496px] -translate-x-1/2 justify-around rounded-glass border border-[var(--stroke)] bg-bar px-1 py-1.5 shadow-float backdrop-blur-xl">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)} aria-current={tab === t.id ? "page" : undefined}
             className={`press relative flex min-h-[48px] flex-1 flex-col items-center justify-center rounded-xl text-xs font-bold ${

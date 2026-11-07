@@ -7,7 +7,7 @@ export function Back({ onClick, children = "← Back" }) {
 export function BigButton({ onClick, disabled, children }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className="press mt-3 w-full rounded-glass bg-accent p-4 text-lg font-black text-bg1 shadow-[0_8px_30px_rgba(56,189,248,0.35)] disabled:opacity-50">
+      className="press mt-3 w-full rounded-glass bg-accent p-4 text-lg font-black text-bg1 shadow-[0_8px_30px_var(--accent-glow)] disabled:opacity-50">
       {children}
     </button>
   );
