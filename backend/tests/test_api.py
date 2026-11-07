@@ -6,13 +6,14 @@ from datetime import timedelta
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from app.core import auth, clock
-from app.services import mailer, otp
-from app.core.clock import utcnow
-from app.db.session import SessionLocal
-from app.models import MenuItem, Order, OtpCode
+from app.shared import auth, clock
+from app.shared import mailer
+from app.features.auth import otp_service
+from app.shared.clock import utcnow
+from app.shared.database import SessionLocal
+from app.shared.models import MenuItem, Order, OtpCode
 
-from conftest import DEV_CODE, OWNER, bearer, place
+from conftest import DEV_CODE, OWNER, bearer, my_order, place
 
 
 # ---------------- menu ----------------
@@ -47,7 +48,7 @@ def test_otp_is_six_digits(client):
 
 
 def test_real_code_works_without_dev_mode(client, monkeypatch):
-    monkeypatch.setattr(otp, "OTP_DEV_MODE", False)
+    monkeypatch.setattr(otp_service, "OTP_DEV_MODE", False)
     client.post("/api/otp/send", json={"email": "real@x.com"})
     with SessionLocal() as db:
         code = db.query(OtpCode).filter_by(email="real@x.com").first().code
@@ -101,21 +102,21 @@ def test_old_otp_rows_are_cleaned_up(client):
 
 def test_auth_mode_reports_dev_mode(client, monkeypatch):
     assert client.get("/api/auth/mode").json()["dev_mode"] is True
-    monkeypatch.setattr(otp, "OTP_DEV_MODE", False)
+    monkeypatch.setattr(otp_service, "OTP_DEV_MODE", False)
     assert client.get("/api/auth/mode").json()["dev_mode"] is False
 
 
 def test_dev_mode_is_impossible_in_production():
     env = {**os.environ, "ENV": "production", "OTP_DEV_MODE": "true"}
     out = subprocess.run(
-        [sys.executable, "-c", "from app.services import otp; print(otp.OTP_DEV_MODE)"],
+        [sys.executable, "-c", "from app.features.auth import otp_service; print(otp_service.OTP_DEV_MODE)"],
         env=env, capture_output=True, text=True, cwd=os.path.dirname(os.path.dirname(__file__)),
     )
     assert out.stdout.strip().splitlines()[-1] == "False", out.stderr
 
 
 def test_production_without_smtp_refuses_to_send(client, monkeypatch):
-    monkeypatch.setattr(otp, "IS_PROD", True)
+    monkeypatch.setattr(otp_service, "IS_PROD", True)
     monkeypatch.setattr(mailer, "SMTP_USER", "")
     assert client.post("/api/otp/send", json={"email": "p@x.com"}).status_code == 503
 
@@ -173,8 +174,7 @@ def test_order_price_snapshot(client, login, make_item):
     with SessionLocal() as db:
         db.query(MenuItem).filter_by(id=item["id"]).update({"price_full": 999})
         db.commit()
-    r = client.get(f"/api/orders/{order['id']}", headers=bearer(token))
-    assert r.json()["total"] == 160  # snapshot survives price change
+    assert my_order(client, token, order["id"])["total"] == 160  # snapshot survives price change
 
 
 def test_half_size_pricing(client, login, make_item):
@@ -198,11 +198,13 @@ def test_order_numbers_are_sequential_and_reset_daily(client, login, make_item):
 
 
 def test_order_isolation_between_customers(client, login, make_item):
-    """Customer B must never be able to read customer A's order."""
+    """Customer B must never be able to see or touch customer A's order."""
     order_a = place(client, login("aa@x.com"), make_item()).json()
-    r = client.get(f"/api/orders/{order_a['id']}", headers=bearer(login("bb@x.com")))
+    token_b = login("bb@x.com")
+    assert client.get("/api/orders/mine", headers=bearer(token_b)).json() == []
+    r = client.post(f"/api/orders/{order_a['id']}/cancel", headers=bearer(token_b))
     assert r.status_code == 404  # not 403 - don't even confirm the order exists
-    assert client.get(f"/api/orders/{order_a['id']}").status_code == 401
+    assert client.get("/api/orders/mine").status_code == 401
 
 
 def test_order_size_is_capped(client, login, make_item):
@@ -296,7 +298,7 @@ def test_stats_today(client, login, make_item):
     place(client, login(), make_item("Oreo Shake", full=80))
     stats = client.get("/api/admin/stats/today", headers=admin).json()
     assert (stats["orders"], stats["top_item"]) == (1, "Oreo Shake")
-    assert (stats["cash_collected"], stats["to_collect"], stats["revenue"]) == (0, 160, 0)  # not paid yet
+    assert (stats["cash_collected"], stats["to_collect"]) == (0, 160)  # not paid yet
 
 
 # ---------------- websockets ----------------
@@ -337,7 +339,7 @@ def test_deliver_sends_mail_over_smtp(monkeypatch):
     monkeypatch.setattr(mailer, "SMTP_PORT", 465)
     monkeypatch.setattr(smtplib, "SMTP_SSL", _FakeSMTP)
     _FakeSMTP.sent = []
-    otp.deliver("dest@x.com", "567890")
+    otp_service.deliver("dest@x.com", "567890")
     assert _FakeSMTP.last_login == ("stall@gmail.com", "app-password")
     _, to, body = _FakeSMTP.sent[0]
     assert to == ["dest@x.com"] and "567890" in body
@@ -355,7 +357,7 @@ def test_smtp_auth_failure_gives_friendly_503(monkeypatch):
     monkeypatch.setattr(mailer, "SMTP_PORT", 465)
     monkeypatch.setattr(smtplib, "SMTP_SSL", _AuthFail)
     with pytest.raises(HTTPException) as e:
-        otp.deliver("dest@x.com", "567890")
+        otp_service.deliver("dest@x.com", "567890")
     assert e.value.status_code == 503
 
 

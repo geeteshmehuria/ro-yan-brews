@@ -1,8 +1,8 @@
 import pytest
 
-from app.core import auth
-from app.db.session import SessionLocal
-from app.models import Customer
+from app.shared import auth
+from app.shared.database import SessionLocal
+from app.shared.models import Customer
 
 from conftest import OWNER
 

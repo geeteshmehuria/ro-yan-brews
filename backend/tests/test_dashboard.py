@@ -1,8 +1,8 @@
 from datetime import timedelta
 
-from app.core.clock import utcnow
-from app.db.session import SessionLocal
-from app.models import Order
+from app.shared.clock import utcnow
+from app.shared.database import SessionLocal
+from app.shared.models import Order
 
 from conftest import OWNER, bearer, place
 
@@ -27,7 +27,7 @@ def test_cash_is_only_counted_once_an_order_is_done(client, login, make_item):
     assert s["cash_collected"] == 100 and s["completed"] == 1
     assert s["to_collect"] == 200  # ready + placed: not paid yet
     assert s["active"] == {"placed": 1, "preparing": 0, "ready": 1}
-    assert s["orders"] == 3 and s["revenue"] == 100
+    assert s["orders"] == 3 and s["cash_collected"] == 100
 
 
 def test_yesterdays_unfinished_order_is_still_to_collect(client, login, make_item):
@@ -172,9 +172,9 @@ def test_not_collected_frees_the_customers_order_slot(client, login, make_item, 
 
 
 def test_not_collected_sends_the_customer_no_notification(client, login, make_item, monkeypatch):
-    from app.services import push
+    from app.features.notifications import push_service
     sent = []
-    monkeypatch.setattr(push, "_send", lambda *a, **k: sent.append(a))
+    monkeypatch.setattr(push_service, "_send", lambda *a, **k: sent.append(a))
     owner, token = bearer(login(OWNER)), login()
     oid = place(client, token, make_item()).json()["id"]
     status(client, owner, oid, "ready")

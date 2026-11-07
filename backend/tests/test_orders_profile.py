@@ -4,10 +4,10 @@ import pytest
 from sqlalchemy import create_engine, inspect, text
 from starlette.websockets import WebSocketDisconnect
 
-from app.services import mailer
-from app.api.routes import orders as orders_routes
-from app.db.session import add_missing_columns
-from app.services.ws_manager import manager
+from app.shared import mailer
+from app.features.orders import orders_router
+from app.shared.database import add_missing_columns
+from app.shared.ws_manager import manager
 
 from conftest import OWNER, bearer, place
 
@@ -67,7 +67,7 @@ def test_order_note_is_optional_and_bounded(client, login, make_item):
 # ---------------- my orders ----------------
 
 def test_my_orders_are_own_newest_first_and_capped(client, login, make_item, monkeypatch):
-    monkeypatch.setattr(orders_routes, "MAX_ACTIVE_ORDERS", 100)  # this test is about the list, not the order cap
+    monkeypatch.setattr(orders_router, "MAX_ACTIVE_ORDERS", 100)  # this test is about the list, not the order cap
     item = make_item()
     mine, other = login("mine@x.com"), login("other@x.com")
     place(client, other, item)

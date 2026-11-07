@@ -32,7 +32,7 @@ const BADGE = {
   not_collected: "bg-warn text-bg1",
 };
 
-export function StatusBadge({ status }) {
+function StatusBadge({ status }) {
   return <span className={`rounded-full px-3 py-1 text-sm font-black ${BADGE[status]}`}>{LABELS[status]}</span>;
 }
 

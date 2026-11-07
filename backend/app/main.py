@@ -1,7 +1,8 @@
 """Ro-Yan Brews API — creates the FastAPI app.
 
-The routes live in app/api/routes (one file per feature), the business helpers in app/services,
-the database setup in app/db and app-wide plumbing (auth, time, config, failure log) in app/core.
+Each feature lives in app/features/<feature>/ with its own router, service and schemas.
+Things several features use (database, models, auth tokens, clock, mailer, live connections)
+are in app/shared, and the failure log middleware is in app/middleware.
 Run with:  uvicorn app.main:app --reload
 """
 import os
@@ -10,12 +11,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.router import api_router
-from .core import auth, middleware
-from .core.config import CORS_ORIGINS
-from .db.seed import seed_menu
-from .db.session import Base, SessionLocal, add_missing_columns, engine
-from .services import request_log
+from app.features.menu.menu_seed import seed_menu
+from app.middleware import failure_log
+from app.router import api_router
+from app.shared import auth, request_log
+from app.shared.config import CORS_ORIGINS
+from app.shared.database import Base, SessionLocal, add_missing_columns, engine
 
 
 @asynccontextmanager
@@ -39,5 +40,5 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
-middleware.install(app)  # failure log (t_log table)
+failure_log.install(app)  # records failed requests in the t_log table
 app.include_router(api_router)

@@ -1,7 +1,7 @@
-from app.db.session import SessionLocal
-from app.models import MenuItem
+from app.shared.database import SessionLocal
+from app.shared.models import MenuItem
 
-from conftest import OWNER, bearer, place
+from conftest import OWNER, bearer, my_order, place
 
 MOMOS = {"name": "Peri Peri Momos", "category": "Momos", "price_full": 120, "price_half": 70}
 
@@ -75,7 +75,7 @@ def test_editing_changes_the_menu_but_not_past_orders(client, login, make_item):
                      json={"name": "Oreo Thick Shake", "category": "Shakes", "price_full": 100})
     assert r.status_code == 200 and r.json()["ordered"] is True
     assert client.get("/api/menu").json()[0]["items"][0]["price_full"] == 100
-    again = client.get(f"/api/orders/{old['id']}", headers=bearer(token)).json()
+    again = my_order(client, token, old["id"])
     assert again["total"] == 80 and again["items"][0]["price"] == 80  # sold price is kept
     # can't rename onto another item's name
     other = make_item("KitKat Shake")
@@ -94,7 +94,7 @@ def test_removed_items_leave_the_menu_and_cannot_be_ordered(client, login, make_
     refused = place(client, token, item)
     assert refused.status_code == 400 and "not on the menu any more" in refused.json()["detail"]
     # past orders still show it, and the owner still sees it (as removed)
-    assert client.get(f"/api/orders/{past['id']}", headers=bearer(token)).json()["items"][0]["name"] == "Mango Shake"
+    assert my_order(client, token, past["id"])["items"][0]["name"] == "Mango Shake"
     listed = {i["name"]: i for i in client.get("/api/admin/menu", headers=owner).json()}
     assert listed["Mango Shake"]["archived"] is True and listed["Oreo Shake"]["archived"] is False
     # restore puts it back

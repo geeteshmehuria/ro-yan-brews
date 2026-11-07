@@ -1,9 +1,10 @@
 from datetime import timedelta
 
-from app.services import mailer, otp, request_log
-from app.core.clock import utcnow
-from app.db.session import SessionLocal
-from app.models import TLog
+from app.shared import mailer, request_log
+from app.features.auth import otp_service
+from app.shared.clock import utcnow
+from app.shared.database import SessionLocal
+from app.shared.models import TLog
 
 from conftest import bearer
 
@@ -21,11 +22,11 @@ def test_successful_requests_are_not_logged(client):
 
 def test_failed_request_is_logged_with_request_info(client, login):
     token = login("someone@x.com")
-    r = client.get("/api/orders/999", headers={**bearer(token), "user-agent": "pytest-agent",
-                                               "x-forwarded-for": "203.0.113.9, 10.0.0.1"})
+    r = client.post("/api/orders/999/cancel", headers={**bearer(token), "user-agent": "pytest-agent",
+                                                       "x-forwarded-for": "203.0.113.9, 10.0.0.1"})
     assert r.status_code == 404
     (row,) = rows()
-    assert (row.method, row.path, row.status) == ("GET", "/api/orders/999", 404)
+    assert (row.method, row.path, row.status) == ("POST", "/api/orders/999/cancel", 404)
     assert row.error == "Order not found"
     assert row.user_email == "someone@x.com" and row.user_agent == "pytest-agent"
     assert row.client_ip == "203.0.113.9" and row.duration_ms is not None
@@ -64,7 +65,7 @@ def test_email_failure_records_the_real_reason(client, monkeypatch):
 def test_unhandled_exception_is_logged_with_traceback_and_returns_500(client, monkeypatch):
     def broken(*a, **k):
         raise RuntimeError("kaboom")
-    monkeypatch.setattr(otp, "send_otp", broken)
+    monkeypatch.setattr(otp_service, "send_otp", broken)
     r = client.post("/api/otp/send", json={"email": "who@x.com"})
     assert r.status_code == 500 and r.json() == {"detail": "Internal Server Error"}
     (row,) = rows()

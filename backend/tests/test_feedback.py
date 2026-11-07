@@ -1,5 +1,5 @@
-from app.db.session import SessionLocal
-from app.models import Feedback
+from app.shared.database import SessionLocal
+from app.shared.models import Feedback
 
 from conftest import OWNER, bearer, place
 

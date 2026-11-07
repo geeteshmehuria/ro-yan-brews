@@ -1,7 +1,7 @@
-from app.core import auth
-from app.services import push
-from app.db.session import SessionLocal
-from app.models import PushToken, TLog
+from app.shared import auth
+from app.features.notifications import push_service
+from app.shared.database import SessionLocal
+from app.shared.models import PushToken, TLog
 
 from conftest import OWNER, bearer, place
 
@@ -24,23 +24,22 @@ class FakeSession:
 
 def fake_fcm(monkeypatch, response=None) -> FakeSession:
     session = FakeSession(response)
-    monkeypatch.setattr(push, "_KEY", "{}")
-    monkeypatch.setattr(push, "_client", lambda: (session, "https://fcm.test"))
+    monkeypatch.setattr(push_service, "_KEY", "{}")
+    monkeypatch.setattr(push_service, "_client", lambda: (session, "https://fcm.test"))
     return session
 
 
-def test_only_owner_can_register_a_phone(client, login):
-    r = client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login()))
-    assert r.status_code == 403
-    r = client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+def test_registering_a_phone_needs_login_and_can_repeat(client, login):
+    assert client.post("/api/push-token", json={"token": TOKEN}).status_code == 401
+    r = client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
     assert r.status_code == 200
     # registering again is fine (the app does it on every launch)
-    assert client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER))).status_code == 200
+    assert client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER))).status_code == 200
 
 
 def test_new_order_and_cancel_push_to_owner(client, login, make_item, monkeypatch):
     fcm = fake_fcm(monkeypatch)
-    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
     customer = login()
     order = place(client, customer, make_item(full=80), qty=2).json()
 
@@ -58,15 +57,15 @@ def test_new_order_and_cancel_push_to_owner(client, login, make_item, monkeypatc
 def test_logged_out_phone_gets_no_push(client, login, make_item, monkeypatch):
     fcm = fake_fcm(monkeypatch)
     owner = login(OWNER)
-    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(owner))
-    client.post("/api/admin/push-token/remove", json={"token": TOKEN}, headers=bearer(owner))
+    client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(owner))
+    client.post("/api/push-token/remove", json={"token": TOKEN}, headers=bearer(owner))
     place(client, login(), make_item())
     assert fcm.sent == []
 
 
 def test_dead_token_is_dropped_and_order_still_works(client, login, make_item, monkeypatch):
     fcm = fake_fcm(monkeypatch, FakeResponse(404, '{"error": {"status": "NOT_FOUND"}}'))
-    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
     item = make_item()
     assert place(client, login(), item).status_code == 201
     assert place(client, login("other@gmail.com"), item).status_code == 201
@@ -75,15 +74,15 @@ def test_dead_token_is_dropped_and_order_still_works(client, login, make_item, m
 
 def test_no_push_without_firebase_key(client, login, make_item, monkeypatch):
     fcm = fake_fcm(monkeypatch)
-    monkeypatch.setattr(push, "_KEY", "")
-    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    monkeypatch.setattr(push_service, "_KEY", "")
+    client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
     assert place(client, login(), make_item()).status_code == 201
     assert fcm.sent == []
 
 
 def test_phone_of_a_removed_owner_gets_no_push(client, login, make_item, monkeypatch):
     fcm = fake_fcm(monkeypatch)
-    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
     monkeypatch.setattr(auth, "ADMIN_EMAILS", {"new-owner@royan.test"})  # ADMIN_EMAIL changed
     place(client, login(), make_item())
     assert fcm.sent == []
@@ -95,7 +94,7 @@ def test_fcm_outage_is_logged_and_never_breaks_the_order(client, login, make_ite
     def down(url, json, timeout):
         raise ConnectionError("fcm unreachable")
     session.post = down
-    client.post("/api/admin/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
+    client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(login(OWNER)))
     assert place(client, login(), make_item()).status_code == 201
     with SessionLocal() as db:
         row = db.query(TLog).filter_by(method="TASK", path="push").one()
@@ -125,7 +124,7 @@ def test_customer_gets_their_order_progress(client, login, make_item, monkeypatc
         client.patch(f"/api/admin/orders/{order['id']}/status", json={"status": status}, headers=owner)
         msg = fcm.sent[-1]
         assert msg["token"] == PHONE and msg["data"] == {"order_id": str(order["id"]), "kind": status}
-        assert msg["android"]["notification"]["channel_id"] == push.CUSTOMER_CHANNEL_ID
+        assert msg["android"]["notification"]["channel_id"] == push_service.CUSTOMER_CHANNEL_ID
         assert msg["android"]["notification"]["tag"] == f"my-order-{order['id']}"  # replaces the last one
         titles.append(msg["notification"]["title"])
     assert len(fcm.sent) == 3

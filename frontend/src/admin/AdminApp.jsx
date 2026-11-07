@@ -245,7 +245,7 @@ export default function AdminApp() {
 
           {stats && (
             <div className="mt-3 grid grid-cols-3 gap-2.5">
-              <div className="glass p-3 text-center"><b className="block text-xl text-accent2">₹{stats.cash_collected ?? stats.revenue}</b><small className="text-xs text-muted">Cash collected</small></div>
+              <div className="glass p-3 text-center"><b className="block text-xl text-accent2">₹{stats.cash_collected}</b><small className="text-xs text-muted">Cash collected</small></div>
               <div className="glass p-3 text-center"><b className="block text-xl text-accent">{stats.orders}</b><small className="text-xs text-muted">Orders today</small></div>
               <div className="glass p-3 text-center"><b className="block text-xl text-accent">₹{stats.to_collect ?? 0}</b><small className="text-xs text-muted">Still to collect</small></div>
             </div>

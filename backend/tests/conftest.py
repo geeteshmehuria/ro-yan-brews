@@ -19,9 +19,9 @@ os.environ.update(
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db.session import Base, SessionLocal, engine
+from app.shared.database import Base, SessionLocal, engine
 from app.main import app
-from app.models import MenuItem
+from app.shared.models import MenuItem
 
 atexit.register(shutil.rmtree, _tmp, ignore_errors=True)
 
@@ -60,6 +60,11 @@ def make_item():
 
 def bearer(token: str) -> dict:
     return {"authorization": f"Bearer {token}"}
+
+
+def my_order(client, token, order_id) -> dict:
+    """One of the customer's orders, as the app sees it (from "my orders")."""
+    return next(o for o in client.get("/api/orders/mine", headers=bearer(token)).json() if o["id"] == order_id)
 
 
 def place(client, token, item, size="na", qty=2):
