@@ -114,6 +114,7 @@ def order_payload(o: Order, admin: bool = False) -> dict:
         "status": o.status,
         "total": o.total,
         "note": o.note,
+        "client_key": o.client_key,  # lets the app tell that a checkout whose reply was lost went through
         "name": o.customer.name,
         "email": o.customer.email if admin else mask(o.customer.email),
         "created_at": o.created_at.isoformat(),
@@ -283,6 +284,12 @@ def update_me(body: ProfileIn, request: Request, db: Session = Depends(get_db)) 
 async def create_order(body: OrderIn, request: Request, background: BackgroundTasks,
                        db: Session = Depends(get_db)) -> dict:
     session = auth.current_customer(request)
+    if body.client_key:  # a retry of a checkout that already went through: same order, no new one
+        placed = (db.query(Order).options(*ORDER_LOAD)
+                  .filter(Order.customer_id == session["cid"], Order.client_key == body.client_key)
+                  .first())
+        if placed is not None:
+            return order_payload(placed)
     if not accepting_orders(db):  # checked here, not just hidden in the UI: old tabs and apps too
         raise HTTPException(409, PAUSED_MESSAGE)
     active = db.query(func.count(Order.id)).filter(
@@ -311,7 +318,8 @@ async def create_order(body: OrderIn, request: Request, background: BackgroundTa
 
     todays = db.query(func.count(Order.id)).filter(Order.created_at >= today_start()).scalar() or 0
 
-    order = Order(order_number=todays + 1, customer_id=session["cid"], total=total, note=body.note)
+    order = Order(order_number=todays + 1, customer_id=session["cid"], total=total, note=body.note,
+                  client_key=body.client_key)
     db.add(order)
     db.flush()
     for item, line, price in lines:

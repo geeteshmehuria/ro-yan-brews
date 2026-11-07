@@ -5,7 +5,7 @@ import { api, getSession, getToken, logout } from "../services/api.js";
 import { beep, flashTitle } from "../utils/alerts.js";
 import { useBackButton } from "../hooks/backButton.js";
 import { disablePush, enablePush } from "../services/push.js";
-import { CART_KEY, IN_APP, MAX_QTY, isActive } from "../config/constants.js";
+import { CART_KEY, CHECKOUT_KEY, IN_APP, MAX_QTY, isActive } from "../config/constants.js";
 import { useSocket } from "../hooks/useSocket.js";
 import { CartScreen } from "./Checkout.jsx";
 import FeedbackSheet from "./Feedback.jsx";
@@ -28,6 +28,27 @@ function reconcile(cart, menu) {
   }
   return next;
 }
+
+// One random key per checkout. The server returns the order already placed when it sees the same
+// key again, so retrying after a lost reply is safe. A new key is made once the cart is edited.
+function checkoutKey() {
+  let key = localStorage.getItem(CHECKOUT_KEY);
+  if (!key) {
+    const bytes = crypto.getRandomValues(new Uint8Array(16)); // works on plain http too, unlike randomUUID
+    key = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem(CHECKOUT_KEY, key);
+  }
+  return key;
+}
+const dropCheckoutKey = () => localStorage.removeItem(CHECKOUT_KEY);
+
+// Did the checkout with the saved key already go through? (Its reply may have been lost.)
+const checkoutWentThrough = (orders) => {
+  const key = localStorage.getItem(CHECKOUT_KEY);
+  return !!key && orders.some((o) => o.client_key === key);
+};
+
+const errorIsUnclear = (e) => !e.status || e.status >= 500; // no reply / timeout / server error
 
 export default function CustomerApp() {
   const navigate = useNavigate();
@@ -81,8 +102,15 @@ export default function CustomerApp() {
   // An expired or rejected session goes back to login instead of leaving a half-empty screen.
   const onAuthError = useCallback((e) => { if (e.status === 401) signOut(); }, [signOut]);
 
-  const loadOrders = useCallback(
-    () => api("/api/orders/mine").then(setOrders).catch(onAuthError), [onAuthError]);
+  // The order went through: empty the cart and forget its checkout key.
+  const orderDone = useCallback(() => { setCart({}); dropCheckoutKey(); }, []);
+
+  // Also catches a checkout whose reply was lost (e.g. the app was closed while waiting):
+  // once the order shows up here, the cart it came from is emptied.
+  const loadOrders = useCallback(() => api("/api/orders/mine").then((mine) => {
+    setOrders(mine);
+    if (checkoutWentThrough(mine)) orderDone();
+  }).catch(onAuthError), [onAuthError, orderDone]);
 
   const loadStore = useCallback(() => api("/api/store")
     .then((st) => setPaused(st.accepting_orders ? null : st.message)).catch(() => {}), []);
@@ -139,6 +167,7 @@ export default function CustomerApp() {
   const changeQty = (item, delta) => {
     const size = sizeOf(item);
     const key = `${item.id}_${size}`;
+    dropCheckoutKey(); // a different cart is a different checkout
     setCart((c) => {
       const line = c[key] || { id: item.id, name: item.name, size, hasHalf: item.price_half != null, price: priceOf(item, size), qty: 0 };
       const qty = Math.min(line.qty + delta, MAX_QTY);
@@ -152,6 +181,7 @@ export default function CustomerApp() {
   // From the cart screen: change a line's quantity (down to 0 removes it), or remove it.
   const changeLine = (key, delta) => setCart((c) => {
     if (!c[key]) return c;
+    dropCheckoutKey();
     const qty = Math.min(c[key].qty + delta, MAX_QTY);
     const next = { ...c };
     if (qty <= 0) delete next[key];
@@ -159,6 +189,7 @@ export default function CustomerApp() {
     return next;
   });
   const removeLine = (key) => setCart((c) => {
+    dropCheckoutKey();
     const next = { ...c };
     delete next[key];
     return next;
@@ -184,15 +215,27 @@ export default function CustomerApp() {
   // Already authenticated by this point — just place the order.
   const placeOrder = async (note) => {
     const items = totals.lines.map((l) => ({ menu_item_id: l.id, size: l.size, qty: l.qty }));
+    const client_key = checkoutKey();
     try {
-      const placed = await api("/api/orders", { method: "POST", body: { items, note } });
-      setOrders((os) => [placed, ...os]);
-      setCart({});
+      const placed = await api("/api/orders", { method: "POST", body: { items, note, client_key } });
+      setOrders((os) => [placed, ...os.filter((o) => o.id !== placed.id)]);
+      orderDone();
       setScreen("orders");
     } catch (e) {
-      if (e.status === 401) signOut();  // session lapsed
-      else if (e.status === 409) { setPaused(e.message); throw e; } // paused while they were in the cart
-      else throw e;
+      if (e.status === 401) return signOut();  // session lapsed
+      if (e.status === 409) { setPaused(e.message); throw e; } // paused while they were in the cart
+      // No reply, a timeout or a 5xx doesn't mean it failed: the server may have saved it and only
+      // the reply was lost (common while the free-tier server wakes up). Check before saying so.
+      if (errorIsUnclear(e)) {
+        const mine = await api("/api/orders/mine").catch(() => null);
+        if (mine && checkoutWentThrough(mine)) {
+          setOrders(mine);
+          orderDone();
+          setScreen("orders");
+          return;
+        }
+      }
+      throw e; // the cart keeps its key, so "Place order" again can't make a duplicate
     }
   };
 

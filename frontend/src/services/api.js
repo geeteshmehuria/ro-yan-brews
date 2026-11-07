@@ -1,4 +1,4 @@
-import { CART_KEY, TOKEN_KEY } from "../config/constants.js";
+import { CART_KEY, CHECKOUT_KEY, TOKEN_KEY } from "../config/constants.js";
 
 export const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 export const WS_BASE = import.meta.env.VITE_WS_URL || API.replace(/^http/, "ws");
@@ -32,6 +32,7 @@ export function getSession() {
 export function logout() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(CART_KEY);
+  localStorage.removeItem(CHECKOUT_KEY);
 }
 
 // A server that accepts the connection but never answers (e.g. Render mid-redeploy) would

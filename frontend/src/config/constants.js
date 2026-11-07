@@ -15,4 +15,7 @@ export const MAX_QTY = 50; // per cart line — the backend's OrderItemIn.qty li
 export const MUTE_KEY = "royan_admin_muted"; // the owner's new-order sound, per device
 export const TOKEN_KEY = "session_token";
 export const CART_KEY = "royan_cart";
+// This cart's checkout key (see placeOrder in CustomerApp): kept until the order is confirmed,
+// so a retry after a lost reply — even after closing the app — never makes a second order.
+export const CHECKOUT_KEY = "royan_checkout_key";
 export const PUSH_KEY = "royan_push_token"; // the Android app's FCM token, unregistered on logout

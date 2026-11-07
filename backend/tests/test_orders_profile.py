@@ -258,3 +258,53 @@ def test_add_missing_columns_also_creates_their_indexes(tmp_path):
     assert "ix_orders_completed_at" in indexes
     assert "ix_orders_created_at" not in indexes  # existing columns are left alone
     engine.dispose()
+
+
+# --- checkout key: a retry after a lost reply must not make a second order ---
+
+def place_keyed(client, token, item, key, qty=1):
+    body = {"items": [{"menu_item_id": item["id"], "size": "na", "qty": qty}], "client_key": key}
+    return client.post("/api/orders", json=body, headers=bearer(token))
+
+
+def test_same_checkout_key_returns_the_same_order(client, login, make_item):
+    tok, item = login(), make_item()
+    first = place_keyed(client, tok, item, "key-aaaaaaaa")
+    again = place_keyed(client, tok, item, "key-aaaaaaaa")
+    assert first.status_code == again.status_code == 201
+    assert again.json()["id"] == first.json()["id"]
+    assert first.json()["client_key"] == "key-aaaaaaaa"
+    mine = client.get("/api/orders/mine", headers=bearer(tok)).json()
+    assert len(mine) == 1 and mine[0]["client_key"] == "key-aaaaaaaa"
+
+
+def test_retry_succeeds_even_if_store_paused_or_limit_reached_since(client, login, make_item):
+    owner, tok, item = login(OWNER), login(), make_item()
+    placed = place_keyed(client, tok, item, "key-retry-001").json()
+    for k in ("key-fill-0002", "key-fill-0003"):
+        assert place_keyed(client, tok, item, k).status_code == 201
+    assert place_keyed(client, tok, item, "key-new-00004").status_code == 429  # 3 active: full
+    client.patch("/api/admin/store", json={"accepting_orders": False}, headers=bearer(owner))
+    assert place_keyed(client, tok, item, "key-retry-001").json()["id"] == placed["id"]
+
+
+def test_different_keys_and_no_key_make_separate_orders(client, login, make_item):
+    tok, item = login(), make_item()
+    a = place_keyed(client, tok, item, "key-one-00001").json()
+    b = place_keyed(client, tok, item, "key-two-00002").json()
+    c = place(client, tok, item).json()
+    d = place(client, tok, item)  # 4th active order: blocked by the limit, not by a NULL key clash
+    assert len({a["id"], b["id"], c["id"]}) == 3 and c["client_key"] is None
+    assert d.status_code == 429
+
+
+def test_checkout_keys_are_per_customer(client, login, make_item):
+    item = make_item()
+    a = place_keyed(client, login("a@gmail.com"), item, "shared-key-01").json()
+    b = place_keyed(client, login("b@gmail.com"), item, "shared-key-01").json()
+    assert a["id"] != b["id"]
+
+
+@pytest.mark.parametrize("key", ["short", "has space!", "x" * 65])
+def test_bad_checkout_keys_are_rejected(client, login, make_item, key):
+    assert place_keyed(client, login(), make_item(), key).status_code == 422

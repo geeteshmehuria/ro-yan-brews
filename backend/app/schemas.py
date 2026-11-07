@@ -46,6 +46,10 @@ class OrderIn(BaseModel):
     # capped: each line is a DB lookup on the single event loop, so a huge order would stall everyone
     items: List[OrderItemIn] = Field(min_length=1, max_length=MAX_ORDER_LINES)
     note: Optional[str] = Field(default=None, max_length=200)
+    # Checkout key (see Order.client_key): a retry with the same key gets the same order back.
+    # Optional so app versions that don't send it keep working.
+    client_key: Optional[str] = Field(default=None, min_length=8, max_length=64,
+                                      pattern=r"^[A-Za-z0-9_-]+$")
 
     _clean_note = field_validator("note")(_blank_to_none)
 

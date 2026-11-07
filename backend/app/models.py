@@ -1,4 +1,4 @@
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer,
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer,
                         String, Text, UniqueConstraint)
 from sqlalchemy.orm import relationship
 
@@ -45,9 +45,16 @@ class Order(Base):
     # When it was marked Done (handed over and paid) — the day its cash counts for. Nullable so
     # add_missing_columns adds it; orders completed before it existed fall back to created_at.
     completed_at = Column(DateTime, nullable=True, index=True)
+    # Random key the app sends with each checkout. If the reply is lost (timeout, 502 while the
+    # server wakes up) the app can retry safely: the same key returns the order already placed
+    # instead of making a second one. Nullable so add_missing_columns adds it (and its index).
+    client_key = Column(String(64), nullable=True)
     customer = relationship("Customer")
     items = relationship("OrderItem", cascade="all, delete-orphan")
     feedback = relationship("Feedback", cascade="all, delete-orphan")
+
+    # one order per checkout key per customer (NULLs, i.e. old apps, don't clash)
+    __table_args__ = (Index("ix_orders_customer_client_key", "customer_id", "client_key", unique=True),)
 
 
 class OrderItem(Base):
