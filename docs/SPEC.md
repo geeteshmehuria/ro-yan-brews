@@ -1,7 +1,7 @@
 # Ro-Yan Brews — Ordering Web App Spec
 
 Version 1.2 — email login; profile (name), order note, cancel, ready email added; see CLAUDE.md for current architecture
-Status: Decisions locked. UI design NOT started (intentionally deferred).
+Status: Decisions locked. v1 is built and live (website + Android app) with the Ocean glass UI.
 
 ---
 
@@ -21,7 +21,7 @@ Secondary user: admin (stall owner) on phone or laptop.
 | Order type | Pickup only. No delivery, no dine-in QR. |
 | Profile | Optional display name only (shown to the owner instead of the email). No other profile fields. |
 | Payment | Cash on pickup. No UPI in v1. |
-| Login | Email + OTP code (sent via Gmail SMTP). No passwords, no signup form. |
+| Login | Email + OTP code (SMTP: Gmail locally, Brevo in production), or Google on the website. No passwords, no signup form. |
 | Identity | Order history auto-linked to email address. |
 | Stack | React (frontend), Tailwind CSS, Python FastAPI (backend), PostgreSQL (database), WebSockets for admin alerts. |
 | UI | Ocean glass theme; `ui-prototype-v2.html` is kept only as the visual reference. |
@@ -62,7 +62,7 @@ Momos and Fries have half / full size options. Exact items and prices come from 
 - Customer list sorted by order frequency (regulars)
 - Pick reviews to show on the website (only ones the customer allowed) and display them
 
-## 8. Design requirements (for the UI session later)
+## 8. Design requirements
 
 - Mobile-first. Desktop is secondary.
 - Large fonts, high contrast, big buttons — usable by elderly customers.

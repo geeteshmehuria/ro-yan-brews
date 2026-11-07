@@ -122,4 +122,6 @@ store, reports, notifications, live), `tests/shared/` and `tests/middleware/`. S
 
 ## v2 backlog (deliberately not built)
 
-Order history page, repeat-last-order, loyalty flagging, daily summary page, UPI, delivery.
+Full order history (customers see their last 20 today), repeat-last-order, regular-customer flag /
+customer list, showing approved reviews on the site, UPI, delivery. (Already built: "My orders" and the
+owner's daily summary — the **Today** tab.)

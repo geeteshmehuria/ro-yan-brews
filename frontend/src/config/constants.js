@@ -1,9 +1,9 @@
-// Keep STATUSES in sync with ORDER_STATUSES in backend/app/models.py.
+// Keep STATUSES in sync with ORDER_STATUSES in backend/app/shared/models.py.
 export const STATUSES = ["placed", "preparing", "ready", "completed"];
 export const LABELS = { placed: "Placed", preparing: "Preparing", ready: "Ready", completed: "Done",
   cancelled: "Cancelled", not_collected: "Not collected" };
 // Orders that are finished one way or the other (no more status changes coming).
-// Keep in sync with CLOSED in backend/app/models.py. "not_collected": ready but never picked up
+// Keep in sync with CLOSED in backend/app/shared/models.py. "not_collected": ready but never picked up
 // (the owner closes it, no cash).
 const CLOSED = ["completed", "cancelled", "not_collected"];
 export const isActive = (order) => !CLOSED.includes(order.status);

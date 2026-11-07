@@ -23,7 +23,7 @@ from app.shared.models import PushToken
 log = logging.getLogger("royan.push")
 
 _KEY = os.getenv("FIREBASE_SERVICE_ACCOUNT", "")
-CHANNEL_ID = "orders"         # owner: new/cancelled orders. Created by the app (src/push.js)
+CHANNEL_ID = "orders"         # owner: new/cancelled orders. Created by the app (frontend/src/services/push.js)
 CUSTOMER_CHANNEL_ID = "status"  # customer: their order's progress
 _session = None
 

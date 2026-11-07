@@ -7,7 +7,7 @@ import { Capacitor } from "@capacitor/core";
 import { api } from "./api.js";
 import { PUSH_KEY } from "../config/constants.js";
 
-// Must match CHANNEL_ID / CUSTOMER_CHANNEL_ID in backend/app/push.py. Importance 5 = heads-up + sound.
+// Must match CHANNEL_ID / CUSTOMER_CHANNEL_ID in backend/app/features/notifications/push_service.py. Importance 5 = heads-up + sound.
 const CHANNELS = [
   { id: "orders", name: "New orders (owner)", description: "New and cancelled orders", importance: 5 },
   { id: "status", name: "My order updates", description: "Preparing, ready and other updates on your order", importance: 5 },

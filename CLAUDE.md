@@ -20,7 +20,7 @@ python -m pytest tests/features/orders              # one feature (works from an
 Frontend (Vite + React, from `frontend/`):
 ```
 npm install
-npm run dev        # http://localhost:5173 (proxies to backend at :8000 by default)
+npm run dev        # http://localhost:5173 (calls the backend at http://localhost:8000 unless VITE_API_URL is set; no Vite proxy)
 npm run build
 ```
 
