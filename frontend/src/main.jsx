@@ -3,10 +3,10 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import AdminApp from "./admin/AdminApp.jsx";
-import { installBackButton } from "./backButton.js";
+import { installBackButton } from "./hooks/backButton.js";
 import CustomerApp from "./customer/CustomerApp.jsx";
-import { DialogHost } from "./dialog.jsx";
-import "./index.css";
+import { DialogHost } from "./components/dialog.jsx";
+import "./styles/index.css";
 
 // The website and the Android app run the same screens: customers get the menu, and the
 // owner's login opens the dashboard (/admin). In the app, Android's Back closes what's open.

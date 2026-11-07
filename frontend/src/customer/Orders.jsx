@@ -1,6 +1,6 @@
-import { LABELS, STATUSES } from "../constants.js";
-import { Back, BigButton } from "../ui.jsx";
-import { ask } from "../dialog.jsx";
+import { LABELS, STATUSES } from "../config/constants.js";
+import { Back, BigButton } from "../components/ui.jsx";
+import { ask } from "../components/dialog.jsx";
 
 function Tracker({ status }) {
   const idx = STATUSES.indexOf(status);

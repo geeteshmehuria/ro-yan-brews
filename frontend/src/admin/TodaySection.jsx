@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api } from "../api.js";
+import { api } from "../services/api.js";
 
 const RANGES = [7, 30];
 const rupees = (n) => `₹${n.toLocaleString("en-IN")}`;

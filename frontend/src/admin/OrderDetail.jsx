@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 
-import { useBackButton } from "../backButton.js";
-import { LABELS, STATUSES, isActive } from "../constants.js";
-import { ask } from "../dialog.jsx";
+import { useBackButton } from "../hooks/backButton.js";
+import { LABELS, STATUSES, isActive } from "../config/constants.js";
+import { ask } from "../components/dialog.jsx";
 
 const SIZE_LABELS = { half: "Half", full: "Full" };
 

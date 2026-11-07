@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-import { api } from "../api.js";
-import { useBackButton } from "../backButton.js";
-import { BigButton } from "../ui.jsx";
+import { api } from "../services/api.js";
+import { useBackButton } from "../hooks/backButton.js";
+import { BigButton } from "../components/ui.jsx";
 
 function Stars({ value, onChange, label }) {
   return (

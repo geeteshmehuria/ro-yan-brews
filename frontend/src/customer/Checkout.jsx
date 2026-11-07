@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import { MAX_QTY } from "../constants.js";
-import { Back, BigButton } from "../ui.jsx";
+import { MAX_QTY } from "../config/constants.js";
+import { Back, BigButton } from "../components/ui.jsx";
 
 export function CartScreen({ paused, totals, back, placeOrder, changeLine, removeLine }) {
   const [busy, setBusy] = useState(false);

@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { api, getSession, getToken, logout } from "../api.js";
-import { beep, flashTitle } from "../alerts.js";
-import { useBackButton } from "../backButton.js";
-import { disablePush, enablePush } from "../push.js";
-import { CART_KEY, IN_APP, MAX_QTY, isActive } from "../constants.js";
-import { useSocket } from "../useSocket.js";
+import { api, getSession, getToken, logout } from "../services/api.js";
+import { beep, flashTitle } from "../utils/alerts.js";
+import { useBackButton } from "../hooks/backButton.js";
+import { disablePush, enablePush } from "../services/push.js";
+import { CART_KEY, IN_APP, MAX_QTY, isActive } from "../config/constants.js";
+import { useSocket } from "../hooks/useSocket.js";
 import { CartScreen } from "./Checkout.jsx";
 import FeedbackSheet from "./Feedback.jsx";
 import { Login } from "./Login.jsx";
 import MenuScreen from "./Menu.jsx";
 import OrdersScreen from "./Orders.jsx";
 import ProfileScreen from "./Profile.jsx";
-import { tell } from "../dialog.jsx";
+import { tell } from "../components/dialog.jsx";
 
 const priceOf = (item, size) => (size === "half" ? item.price_half : item.price_full);
 

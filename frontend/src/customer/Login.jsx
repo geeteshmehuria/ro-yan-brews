@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
-import { api, setToken } from "../api.js";
-import { useBackButton } from "../backButton.js";
-import { Back, BigButton, Field } from "../ui.jsx";
+import { api, setToken } from "../services/api.js";
+import { useBackButton } from "../hooks/backButton.js";
+import { Back, BigButton, Field } from "../components/ui.jsx";
 
 function EmailScreen({ email, setEmail, next, googleClientId, onGoogleSuccess, googleErr, setGoogleErr, title, subtitle }) {
   const [err, setErr] = useState("");

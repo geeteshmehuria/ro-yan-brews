@@ -5,7 +5,7 @@
 import { Capacitor } from "@capacitor/core";
 
 import { api } from "./api.js";
-import { PUSH_KEY } from "./constants.js";
+import { PUSH_KEY } from "../config/constants.js";
 
 // Must match CHANNEL_ID / CUSTOMER_CHANNEL_ID in backend/app/push.py. Importance 5 = heads-up + sound.
 const CHANNELS = [

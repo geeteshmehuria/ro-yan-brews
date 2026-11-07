@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { api } from "../api.js";
+import { api } from "../services/api.js";
 
 const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n);
 
