@@ -26,6 +26,7 @@ from app.shared.models import MenuItem
 atexit.register(shutil.rmtree, _tmp, ignore_errors=True)
 
 OWNER = "owner@royan.test"
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # where `app/` lives
 DEV_CODE = "123456"
 
 
