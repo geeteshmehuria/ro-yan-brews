@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { api } from "../api.js";
-import { Back, BigButton, Field } from "../ui.jsx";
+import { api } from "../services/api.js";
+import { Back, BigButton, Field } from "../components/ui.jsx";
 
 export default function ProfileScreen({ me, onSaved, onLogout, back }) {
   const [name, setName] = useState(me?.name || "");

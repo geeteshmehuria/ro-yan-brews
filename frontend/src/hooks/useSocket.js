@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { WS_BASE } from "./api.js";
+import { WS_BASE } from "../services/api.js";
 
 /**
  * JSON WebSocket that reconnects after drops (e.g. the free-tier backend waking up).

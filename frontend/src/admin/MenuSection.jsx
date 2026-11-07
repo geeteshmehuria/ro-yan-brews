@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { api } from "../api.js";
-import { ICONS } from "../constants.js";
-import { useSocket } from "../useSocket.js";
+import { api } from "../services/api.js";
+import { ICONS } from "../config/constants.js";
+import { useSocket } from "../hooks/useSocket.js";
 import MenuItemForm from "./MenuItemForm.jsx";
-import { ask, tell } from "../dialog.jsx";
+import { ask, tell } from "../components/dialog.jsx";
 
 const UNDO_MS = 6000;
 

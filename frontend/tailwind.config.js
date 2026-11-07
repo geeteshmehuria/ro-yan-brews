@@ -1,4 +1,4 @@
-/** All colors flow from the Ocean theme tokens in src/index.css */
+/** All colors flow from the Ocean theme tokens in src/styles/index.css */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
-import { useBackButton } from "../backButton.js";
-import { BigButton } from "../ui.jsx";
+import { useBackButton } from "../hooks/backButton.js";
+import { BigButton } from "../components/ui.jsx";
 
 const toPrice = (v) => (/^\d+$/.test(v) ? Number(v) : NaN);
 

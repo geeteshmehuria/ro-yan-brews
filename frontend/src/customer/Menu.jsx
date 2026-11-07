@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import { ICONS, LABELS, MAX_QTY } from "../constants.js";
-import { useReveal } from "../useReveal.js";
+import { ICONS, LABELS, MAX_QTY } from "../config/constants.js";
+import { useReveal } from "../hooks/useReveal.js";
 
 function Header({ activeCount, openOrders, openProfile }) {
   return (

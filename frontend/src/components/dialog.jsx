@@ -4,7 +4,7 @@
 // <DialogHost /> is mounted once (main.jsx); dialogs queue and show one at a time.
 import { useEffect, useRef, useState } from "react";
 
-import { useBackButton } from "./backButton.js";
+import { useBackButton } from "../hooks/backButton.js";
 
 let enqueue = null; // set while <DialogHost /> is mounted
 let nextId = 0;

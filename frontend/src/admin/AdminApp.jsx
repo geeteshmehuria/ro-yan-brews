@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { api, getSession, getToken, logout } from "../api.js";
-import { beep } from "../alerts.js";
-import { useBackButton } from "../backButton.js";
-import { MUTE_KEY, isActive } from "../constants.js";
-import { useSocket } from "../useSocket.js";
+import { api, getSession, getToken, logout } from "../services/api.js";
+import { beep } from "../utils/alerts.js";
+import { useBackButton } from "../hooks/backButton.js";
+import { MUTE_KEY, isActive } from "../config/constants.js";
+import { useSocket } from "../hooks/useSocket.js";
 import FeedbackSection from "./FeedbackSection.jsx";
 import MenuSection from "./MenuSection.jsx";
 import TodaySection from "./TodaySection.jsx";
 import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDetail.jsx";
-import { disablePush, enablePush } from "../push.js";
-import { ask, tell } from "../dialog.jsx";
+import { disablePush, enablePush } from "../services/push.js";
+import { ask, tell } from "../components/dialog.jsx";
 
 // Orders not yet ready turn amber after 10 minutes and red after 20.
 const WAIT_AMBER = 10, WAIT_RED = 20;
