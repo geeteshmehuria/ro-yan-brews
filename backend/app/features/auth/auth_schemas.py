@@ -23,4 +23,4 @@ class OtpVerifyIn(EmailIn):
 
 
 class GoogleAuthIn(BaseModel):
-    credential: str = Field(min_length=10)
+    credential: str = Field(min_length=10, max_length=4096)  # a Google ID token is ~1-2 KB

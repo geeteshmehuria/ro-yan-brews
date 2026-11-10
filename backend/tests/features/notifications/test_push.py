@@ -185,6 +185,20 @@ def test_logged_out_phone_gets_no_push(client, login, make_item, monkeypatch):
     assert fcm.sent == []
 
 
+def test_nobody_can_switch_off_someone_elses_phone(client, login, make_item, monkeypatch):
+    fcm = fake_fcm(monkeypatch)
+    owner, stranger = login(OWNER), login("stranger@x.com")
+    client.post("/api/push-token", json={"token": TOKEN}, headers=bearer(owner))
+    r = client.post("/api/push-token/remove", json={"token": TOKEN}, headers=bearer(stranger))
+    assert r.status_code == 200  # same reply either way: it doesn't reveal whose token it is
+    place(client, login(), make_item())
+    assert [m["token"] for m in fcm.sent] == [TOKEN]  # the owner still gets the new order
+
+
+def test_google_credential_size_is_capped(client):
+    assert client.post("/api/auth/google", json={"credential": "x" * 5000}).status_code == 422
+
+
 def test_fcm_outage_is_logged_and_never_breaks_the_order(client, login, make_item, monkeypatch):
     session = fake_fcm(monkeypatch)
 

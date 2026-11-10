@@ -31,11 +31,6 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
         and_(Order.completed_at.is_(None), Order.created_at >= start),  # done before completed_at existed
     )).all())
     unfinished = (db.query(Order).filter(Order.status.notin_(CLOSED)).all())
-    counts: dict = defaultdict(int)
-    for o in kept:
-        for i in o.items:
-            counts[i.menu_item.name] += i.qty
-    top = max(counts, key=counts.get) if counts else None
     cash = sum(o.total for o in done)
     by_status = {st: sum(1 for o in unfinished if o.status == st) for st in ("placed", "preparing", "ready")}
     out_of_stock = db.query(func.count(MenuItem.id)).filter(
@@ -50,7 +45,6 @@ def stats_today(request: Request, db: Session = Depends(get_db)) -> dict:
         "active": by_status,                       # unfinished orders by status (any day)
         "out_of_stock": out_of_stock,
         "accepting_orders": accepting_orders(db),
-        "top_item": top,
     }
 
 

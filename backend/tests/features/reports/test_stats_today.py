@@ -20,7 +20,7 @@ def test_stats_today(client, login, make_item):
     admin = bearer(login(OWNER))
     place(client, login(), make_item("Oreo Shake", full=80))
     stats = client.get("/api/admin/stats/today", headers=admin).json()
-    assert (stats["orders"], stats["top_item"]) == (1, "Oreo Shake")
+    assert stats["orders"] == 1
     assert (stats["cash_collected"], stats["to_collect"]) == (0, 160)  # not paid yet
 
 

@@ -1,6 +1,7 @@
 """Android app push-notification tokens: registered after login, removed on logout."""
 
 from fastapi import APIRouter, Depends, Request
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.features.notifications import push_service
@@ -22,8 +23,10 @@ def register_push_token(body: PushTokenIn, request: Request, db: Session = Depen
 
 @router.post("/api/push-token/remove")
 def remove_push_token(body: PushTokenIn, request: Request, db: Session = Depends(get_db)) -> dict:
-    """Called on logout, so a logged-out phone stops getting notifications."""
-    auth.current_customer(request)
-    db.query(PushToken).filter_by(token=body.token).delete()
+    """Called on logout, so a logged-out phone stops getting notifications. Only the caller's own
+    phone: knowing someone else's token must not switch off their (e.g. the owner's) alerts."""
+    session = auth.current_customer(request)
+    db.query(PushToken).filter(PushToken.token == body.token, or_(
+        PushToken.customer_id == session["cid"], PushToken.email == session["email"])).delete()
     db.commit()
     return {"removed": True}
