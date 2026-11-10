@@ -85,7 +85,7 @@ export default function FeedbackSheet({ order, prompt = false, onDone, onClose }
         <label className="mt-4 flex cursor-pointer items-start gap-3 px-1">
           <input type="checkbox" checked={allowPublic} onChange={(e) => setAllowPublic(e.target.checked)}
             className="mt-1 h-5 w-5 flex-none accent-[var(--accent)]" />
-          <span className="text-sm">OK to show my name and review on the Ro-Yan website</span>
+          <span className="text-sm">OK to show my name and review on the Mr. Momo website</span>
         </label>
 
         {err && <p className="mt-2 text-center text-sm text-danger">{err}</p>}

@@ -26,7 +26,13 @@ Render's free tier allows one Postgres and it is taken, so use a free Neon proje
 4. Optional — Google sign-in: Google Cloud Console → APIs & Services → Credentials → **Create OAuth client ID** (Web application). Under **Authorized JavaScript origins** add your Vercel URL (and `http://localhost:5173` for dev). Put the client ID in Render as `GOOGLE_CLIENT_ID`. Leave it unset and Google login is simply off — the button is hidden and the endpoint refuses (it is never "on without a client ID").
 5. When it's live, open `https://<your-service>.onrender.com/api/health` — expect `{"ok":true}`.
 
-The menu starts **empty** in production (the placeholder menu is only for dev). Put the real menu in `backend/app/features/menu/menu_seed.py` and set `SEED_MENU=true` once, then unset it.
+The menu starts **empty** in production. `backend/app/features/menu/menu_seed.py` holds the stall's menu: on a new, empty database set `SEED_MENU=true` once, then unset it. To change a database that **already has a menu** to the one in that file, run this once from `backend/` with `DATABASE_URL` set to that database (old items are removed from the menu, never deleted, so past orders keep them):
+
+```
+python -m app.features.menu.menu_seed
+```
+
+After the first deploy, log in as the owner and add the stall's phone number on the Orders tab — customers then get a **Call the stall** button on their orders.
 
 ## 4. Frontend on Vercel
 

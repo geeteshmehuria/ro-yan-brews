@@ -21,6 +21,8 @@ class OrderIn(BaseModel):
     # capped: each line is a DB lookup on the single event loop, so a huge order would stall everyone
     items: List[OrderItemIn] = Field(min_length=1, max_length=MAX_ORDER_LINES)
     note: Optional[str] = Field(default=None, max_length=200)
+    # Minutes until the customer reaches the stall (0 = now). Optional: older apps don't send it.
+    pickup_minutes: Optional[int] = Field(default=None, ge=0, le=120)
     # Checkout key (see Order.client_key): a retry with the same key gets the same order back.
     # Optional so app versions that don't send it keep working.
     client_key: Optional[str] = Field(default=None, min_length=8, max_length=64,

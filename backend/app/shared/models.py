@@ -41,6 +41,9 @@ class Order(Base):
     status = Column(String(20), default="placed", nullable=False)
     total = Column(Integer, nullable=False)
     note = Column(String(200), nullable=True)  # customer's special instructions
+    # "I'll reach the stall in N minutes", picked at checkout (0 = coming now), so the owner knows
+    # when to start cooking. Nullable so add_missing_columns adds it; NULL = an older app, not asked.
+    pickup_minutes = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
     # When it was marked Done (handed over and paid) — the day its cash counts for. Nullable so
     # add_missing_columns adds it; orders completed before it existed fall back to created_at.

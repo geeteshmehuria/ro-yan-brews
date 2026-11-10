@@ -63,6 +63,7 @@ export default function CustomerApp() {
   const [orders, setOrders] = useState([]); // this customer's recent orders, newest first
   const [me, setMe] = useState(null); // { email, name }
   const [paused, setPaused] = useState(null); // the owner paused orders: their message, else null
+  const [phone, setPhone] = useState(null); // the stall's number for "Call the stall" (null = none set)
   const [rating, setRating] = useState(null); // { id, prompt } of the order being rated
   const loggedIn = screen !== "login";
   const ordersRef = useRef(orders);
@@ -113,7 +114,8 @@ export default function CustomerApp() {
   }).catch(onAuthError), [onAuthError, orderDone]);
 
   const loadStore = useCallback(() => api("/api/store")
-    .then((st) => setPaused(st.accepting_orders ? null : st.message)).catch(() => {}), []);
+    .then((st) => { setPaused(st.accepting_orders ? null : st.message); setPhone(st.phone ?? null); })
+    .catch(() => {}), []);
 
   useEffect(() => {
     if (!loggedIn) return;
@@ -138,7 +140,10 @@ export default function CustomerApp() {
   // live stock updates (only once logged in)
   useSocket(loggedIn ? "/ws/menu" : null, (msg) => {
     if (msg.type === "menu_changed") return loadMenu(); // owner added/edited/removed items; re-prices the cart
-    if (msg.type === "store") return setPaused(msg.accepting_orders ? null : msg.message);
+    if (msg.type === "store") {
+      setPhone(msg.phone ?? null);
+      return setPaused(msg.accepting_orders ? null : msg.message);
+    }
     if (msg.type !== "availability") return;
     setMenu((m) => m && m.map((g) => ({
       ...g,
@@ -213,11 +218,11 @@ export default function CustomerApp() {
   };
 
   // Already authenticated by this point — just place the order.
-  const placeOrder = async (note) => {
+  const placeOrder = async (note, pickup_minutes) => {
     const items = totals.lines.map((l) => ({ menu_item_id: l.id, size: l.size, qty: l.qty }));
     const client_key = checkoutKey();
     try {
-      const placed = await api("/api/orders", { method: "POST", body: { items, note, client_key } });
+      const placed = await api("/api/orders", { method: "POST", body: { items, note, pickup_minutes, client_key } });
       setOrders((os) => [placed, ...os.filter((o) => o.id !== placed.id)]);
       orderDone();
       setScreen("orders");
@@ -260,7 +265,7 @@ export default function CustomerApp() {
           changeLine={changeLine} removeLine={removeLine} />
       )}
       {screen === "orders" && (
-        <OrdersScreen orders={orders} cancel={cancelOrder} rate={(o) => setRating({ id: o.id, prompt: false })}
+        <OrdersScreen orders={orders} phone={phone} cancel={cancelOrder} rate={(o) => setRating({ id: o.id, prompt: false })}
           back={() => setScreen("menu")}
           newOrder={() => setScreen("menu")} />
       )}

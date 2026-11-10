@@ -1,6 +1,6 @@
-# Ro-Yan Brews — Food Ordering App
+# Mr. Momo — Food Ordering App
 
-Pickup-only ordering app for the Ro-Yan fast food stall. Ocean glass UI. Email + OTP login, cash on pickup, live order status that stays visible while ordering again, optional profile name, order notes, cancel-while-placed, a "ready" beep + email, and a real-time owner dashboard.
+Pickup-only ordering app for the Mr. Momo fast food stall. Glass UI in the stall's poster colours. Email + OTP login, cash on pickup, live order status that stays visible while ordering again, optional profile name, order notes, cancel-while-placed, a "ready" beep + email, and a real-time owner dashboard.
 
 ## Structure
 
@@ -28,7 +28,7 @@ features/
     menu_admin_router.py   owner: add / edit / remove / restore / delete, stock on/off
     menu_service.py        shared menu helpers
     menu_schemas.py
-    menu_seed.py           placeholder menu for local dev
+    menu_seed.py           the stall's menu (seeds an empty DB; replace_menu for an existing one)
   orders/
     orders_router.py       customer: place, list, cancel
     orders_admin_router.py owner: the queue and status changes
@@ -102,7 +102,7 @@ store, reports, notifications, live), `tests/shared/` and `tests/middleware/`. S
 
 | Var | Purpose |
 |---|---|
-| `ENV` | `dev` (default) or `production`. Production refuses to start with a weak `JWT_SECRET`, never accepts the dev code, and never auto-seeds the placeholder menu. |
+| `ENV` | `dev` (default) or `production`. Production refuses to start with a weak `JWT_SECRET`, never accepts the dev code, and never auto-seeds the menu. |
 | `JWT_SECRET` | Random string, 32+ chars. |
 | `DATABASE_URL` | Postgres URL. Unset = local SQLite. |
 | `ADMIN_EMAIL` | The owner's email. |
@@ -110,7 +110,7 @@ store, reports, notifications, live), `tests/shared/` and `tests/middleware/`. S
 | `SMTP_HOST/PORT/USER/PASS/FROM_NAME` | SMTP for login + "order ready" emails (required in production). Local: Gmail (`smtp.gmail.com:465`, App Password). Render free tier blocks 25/465/587, so production uses Brevo: `smtp-relay.brevo.com`, port **2525**, Brevo SMTP login + key. |
 | `MAIL_FROM` | Visible sender address; must be verified in Brevo. Defaults to `SMTP_USER`. |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins. |
-| `SEED_MENU` | Force the placeholder menu on/off. Default: on in dev, off in production. |
+| `SEED_MENU` | Force seeding the menu into an empty database on/off. Default: on in dev, off in production. |
 
 ## Known caveats
 
@@ -118,7 +118,7 @@ store, reports, notifications, live), `tests/shared/` and `tests/middleware/`. S
 - Runs as **one** backend process (live updates and order numbering are in memory).
 - "Today" (order numbers, admin stats) is the stall's IST day.
 - Login codes are limited per email (3 sends / 10 min, 5 wrong tries), not per IP.
-- Menu seed is placeholder until the real stall menu is provided (`backend/app/features/menu/menu_seed.py`); production starts with an **empty** menu.
+- The menu seed (`backend/app/features/menu/menu_seed.py`) is the stall's real menu; production starts with an **empty** menu — see `docs/DEPLOY-STEPS.md` for loading or replacing it.
 
 ## v2 backlog (deliberately not built)
 

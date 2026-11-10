@@ -1,3 +1,8 @@
+// The stall's logo (public/logo.png). It is drawn on white, so it sits on a white rounded tile.
+export function Logo({ className = "h-10 w-10" }) {
+  return <img src="/logo.png" alt="Mr. Momo" className={`flex-none rounded-2xl bg-white object-contain ${className}`} />;
+}
+
 export function Back({ onClick, children = "← Back" }) {
   return (
     <button onClick={onClick} className="press px-1 py-4 font-extrabold text-accent">{children}</button>

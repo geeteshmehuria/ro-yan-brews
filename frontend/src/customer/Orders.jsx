@@ -1,4 +1,6 @@
-import { LABELS, STATUSES } from "../config/constants.js";
+import { LABELS, STATUSES, isActive } from "../config/constants.js";
+import { useNow } from "../hooks/useNow.js";
+import { notStartedYet, pickupLabel } from "../utils/pickup.js";
 import { Back, BigButton } from "../components/ui.jsx";
 import { ask } from "../components/dialog.jsx";
 
@@ -21,7 +23,24 @@ function Tracker({ status }) {
   );
 }
 
-function OrderCard({ order, cancel, rate }) {
+// "Call the stall" on an order in progress. It stands out once the order has sat at "placed"
+// for a while (`urgent`): the owner may not have seen it, and a call gets it started.
+function CallStall({ order, phone, urgent }) {
+  return (
+    <div className={`mb-3 rounded-xl border p-3 ${urgent ? "border-warn bg-warn-soft" : "border-[var(--stroke)]"}`}>
+      {urgent && <p className="mb-2 text-sm font-bold text-warn">The stall hasn't started your order yet — give them a call.</p>}
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-muted">Tell them: <b className="text-ink">order #{order.order_number}</b></span>
+        <a href={`tel:${phone}`} aria-label={`Call the stall about order #${order.order_number}`}
+          className={`press flex-none rounded-xl px-4 py-2.5 text-sm font-black ${urgent ? "bg-accent text-bg1" : "glass-strong text-accent"}`}>
+          📞 Call the stall
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({ order, cancel, rate, phone, now }) {
   const time = new Date(order.created_at + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const cancelled = order.status === "cancelled";
   const uncollected = order.status === "not_collected"; // the stall closed it: it was ready but never picked up
@@ -35,6 +54,7 @@ function OrderCard({ order, cancel, rate }) {
         {order.items.map((i) => `${i.name}${i.size !== "na" ? ` (${i.size})` : ""} ×${i.qty}`).join(", ")}
       </div>
       {order.note && <div className="mt-1 text-sm italic text-muted">“{order.note}”</div>}
+      {isActive(order) && pickupLabel(order) && <div className="mt-1 text-sm font-bold text-accent2">🕒 {pickupLabel(order)}</div>}
       {cancelled ? <div className="mt-3 font-extrabold text-danger">Cancelled</div>
         : uncollected ? <div className="mt-3 font-extrabold text-muted">Not collected</div>
         : <Tracker status={order.status} />}
@@ -42,6 +62,7 @@ function OrderCard({ order, cancel, rate }) {
         ? <p className="mt-1 text-sm font-bold text-accent2">Thanks for your feedback ✓</p>
         : <button onClick={() => rate(order)}
             className="press mt-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-bg1">Rate your food ⭐</button>)}
+      {isActive(order) && phone && <CallStall order={order} phone={phone} urgent={notStartedYet(order, now)} />}
       {order.status === "placed" && (
         <button onClick={async () => await ask({ title: `Cancel order #${order.order_number}?`,
           message: "The stall hasn't started it yet. You can order again any time.",
@@ -52,7 +73,8 @@ function OrderCard({ order, cancel, rate }) {
   );
 }
 
-export default function OrdersScreen({ orders, cancel, rate, newOrder, back }) {
+export default function OrdersScreen({ orders, phone, cancel, rate, newOrder, back }) {
+  const now = useNow();
   return (
     <main className="screen-in px-3 pb-10">
       <Back onClick={back}>← Menu</Back>
@@ -61,7 +83,7 @@ export default function OrdersScreen({ orders, cancel, rate, newOrder, back }) {
       <BigButton onClick={newOrder}>+ New order</BigButton>
       <div className="mt-4">
         {orders.length === 0 && <p className="glass p-5 text-center text-muted">No orders yet</p>}
-        {orders.map((o) => <OrderCard key={o.id} order={o} cancel={cancel} rate={rate} />)}
+        {orders.map((o) => <OrderCard key={o.id} order={o} cancel={cancel} rate={rate} phone={phone} now={now} />)}
       </div>
     </main>
   );

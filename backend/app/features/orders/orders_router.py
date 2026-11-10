@@ -63,7 +63,7 @@ async def create_order(body: OrderIn, request: Request, background: BackgroundTa
     todays = db.query(func.count(Order.id)).filter(Order.created_at >= today_start()).scalar() or 0
 
     order = Order(order_number=todays + 1, customer_id=session["cid"], total=total, note=body.note,
-                  client_key=body.client_key)
+                  pickup_minutes=body.pickup_minutes, client_key=body.client_key)
     db.add(order)
     db.flush()
     for item, line, price in lines:
@@ -75,6 +75,8 @@ async def create_order(body: OrderIn, request: Request, background: BackgroundTa
     payload = order_payload(order, admin=True)
     await manager.broadcast_admin({"type": "new_order", "order": payload})
     summary = ", ".join(f"{i['name']} ×{i['qty']}" for i in payload["items"])
+    if order.pickup_minutes is not None:  # the owner's phone shows when to have it ready
+        summary += " · coming now" if order.pickup_minutes == 0 else f" · coming in {order.pickup_minutes} min"
     background.add_task(push_service.notify_admins, f"New order #{order.order_number} · ₹{order.total}",
                         f"{payload['name'] or payload['email']}: {summary}", order.id)
     return order_payload(order)

@@ -56,10 +56,10 @@ def test_mail_from_is_the_sender_and_starttls_is_used_off_465(monkeypatch):
     monkeypatch.setattr(mailer, "SMTP_PASS", "key")
     monkeypatch.setattr(mailer, "SMTP_PORT", 2525)
     monkeypatch.setattr(mailer, "MAIL_FROM", "stall@gmail.com")
-    monkeypatch.setattr(mailer, "SMTP_FROM_NAME", "Ro-Yan Brews")
+    monkeypatch.setattr(mailer, "SMTP_FROM_NAME", "Mr. Momo")
     monkeypatch.setattr(smtplib, "SMTP", _StartTLS)
     _FakeSMTP.sent = []
     mailer.send_mail("dest@x.com", "Hi", "Body")
     frm, to, body = _FakeSMTP.sent[0]
     assert _StartTLS.started and _FakeSMTP.last_login == ("login@smtp-brevo.com", "key")
-    assert frm == "stall@gmail.com" and "From: Ro-Yan Brews <stall@gmail.com>" in body
+    assert frm == "stall@gmail.com" and "From: Mr. Momo <stall@gmail.com>" in body

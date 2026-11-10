@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launch screen: the app icon's own artwork (navy Ocean background + Ro-Yan drink),
+<!-- Launch screen: the Mr. Momo logo on white, the same artwork as the app icon,
      so it always matches the icon. Replaces Capacitor's default splash PNGs. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/ic_royan_background" />
+    <item android:drawable="@color/ic_launcher_background" />
     <item
-        android:drawable="@drawable/ic_royan_foreground"
+        android:drawable="@drawable/ic_momo_foreground"
         android:gravity="center"
-        android:width="200dp"
-        android:height="200dp" />
+        android:width="320dp"
+        android:height="320dp" />
 </layer-list>

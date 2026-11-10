@@ -1,13 +1,13 @@
-# Ro-Yan Brews — Ordering Web App Spec
+# Mr. Momo — Ordering Web App Spec
 
 Version 1.2 — email login; profile (name), order note, cancel, ready email added; see CLAUDE.md for current architecture
-Status: Decisions locked. v1 is built and live (website + Android app) with the Ocean glass UI.
+Status: Decisions locked. v1 is built and live (website + Android app) with the glass UI in the Mr. Momo colours (rebranded from Ro-Yan Brews, November 2026).
 
 ---
 
 ## 1. What this is
 
-A web app for the Ro-Yan fast food stall so customers can see the menu, place an order from their phone, and get notified when it's ready. The stall owner (admin) gets orders in real time on a dashboard.
+A web app for the Mr. Momo fast food stall so customers can see the menu, place an order from their phone, and get notified when it's ready. The stall owner (admin) gets orders in real time on a dashboard.
 
 The same app also ships as an **Android app** (same screens; customers get the menu, the owner's login opens the dashboard, Google sign-in is web-only). Push notifications (even when the app is closed): the owner gets new and cancelled orders; customers get their own order's progress (preparing, ready, done → rate, cancelled by the stall). The app is installed directly on a few phones (no Play Store).
 
@@ -24,7 +24,7 @@ Secondary user: admin (stall owner) on phone or laptop.
 | Login | Email + OTP code (SMTP: Gmail locally, Brevo in production), or Google on the website. No passwords, no signup form. |
 | Identity | Order history auto-linked to email address. |
 | Stack | React (frontend), Tailwind CSS, Python FastAPI (backend), PostgreSQL (database), WebSockets for admin alerts. |
-| UI | Ocean glass theme; `ui-prototype-v2.html` is kept only as the visual reference. |
+| UI | Glass theme in the Mr. Momo poster colours; `ui-prototype-v2.html` is the old layout prototype. |
 
 ## 3. Menu categories
 
@@ -67,7 +67,8 @@ Momos and Fries have half / full size options. Exact items and prices come from 
 - Mobile-first. Desktop is secondary.
 - Large fonts, high contrast, big buttons — usable by elderly customers.
 - Max 3 steps from opening the app to order placed: pick items → email+OTP → done.
-- Theme: **Ocean** (locked 5 July 2026, chosen from v2 prototype) — glass UI on dark blue. Tokens: bg gradient `#0a1420 → #0f2a3a`, accent `#38bdf8`, secondary `#34d399`, text `#f4f1e8`.
+- Theme: **Mr. Momo** (November 2026, from the stall's poster; replaces the blue "Ocean" theme of 5 July 2026) — glass UI on warm charcoal. Tokens: bg gradient `#17110d → #2b1a10`, accent `#ffc93c` (yellow), secondary `#4ade80` (pure-veg green), text `#fff7ea`.
+- Added with the rebrand: the stall's phone number with a **Call the stall** button on in-progress orders, and a **pickup time** (Now / 15 / 30 / 45 min) chosen at checkout and shown to the owner.
 - Glass/frosted cards, scroll-reveal animations, floating cart bar — as demonstrated in `ui-prototype-v2.html`.
 - English + Hindi labels worth considering — decide during build.
 

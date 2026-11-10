@@ -1,4 +1,4 @@
-# Ro-Yan — Android app
+# Mr. Momo — Android app
 
 One app for everyone, like the website: **customers** log in and get the menu, cart and
 their orders; the **owner's** login (`ADMIN_EMAIL`) opens the dashboard. It is built with
@@ -46,7 +46,7 @@ wait for Gradle (first time 5–10 min) → pick your iQOO at the top → green 
 
 ---
 
-## Phase 1 — run the Ro-Yan Admin app on your phone
+## Phase 1 — run the Mr. Momo Admin app on your phone
 
 **1. Get the code** (first time only):
 ```
@@ -64,7 +64,7 @@ This builds the admin app (`vite build --mode android` into `frontend/dist-andro
 from the website's `dist`, so a website build can never end up in the app), copies it into the Android project
 (`cap sync`) and opens `frontend\android` in Android Studio. Wait for Gradle to finish.
 
-**3. Run:** pick your iQOO at the top → green **▶ Run**. "Ro-Yan" (cold-drink icon) opens on the phone.
+**3. Run:** pick your iQOO at the top → green **▶ Run**. "Mr. Momo" (the Mr. Momo logo) opens on the phone.
 
 **4. Log in** with the owner email → the code arrives by email → the dashboard. (The first
 load can take up to a minute while the free Render backend wakes up.)
@@ -112,8 +112,8 @@ place an order from the website → "New order #N · ₹…" with sound.
 
 | Problem | Fix |
 |---|---|
-| Never asked to allow notifications / no alerts | Settings → Apps → Ro-Yan → Notifications → on (and the **New orders (owner)** / **My order updates** category on, with sound) |
-| Alerts come late or only when the app is open | vivo/iQOO kill background apps: Settings → Apps → Ro-Yan → **Battery → Allow background activity / Don't restrict**, and turn on **Autostart** |
+| Never asked to allow notifications / no alerts | Settings → Apps → Mr. Momo → Notifications → on (and the **New orders (owner)** / **My order updates** category on, with sound) |
+| Alerts come late or only when the app is open | vivo/iQOO kill background apps: Settings → Apps → Mr. Momo → **Battery → Allow background activity / Don't restrict**, and turn on **Autostart** |
 | Still nothing | Neon: `SELECT * FROM t_log WHERE path = 'push' ORDER BY id DESC LIMIT 5;` shows FCM's error. `SELECT count(*) FROM push_tokens;` = 0 means the phone never registered (missing `google-services.json`, or permission denied) |
 
 ## Customers' phones (the 5–6 people who get the app)
@@ -128,7 +128,7 @@ The app isn't on the Play Store, so you install it on each customer's phone your
    file; they tap it and allow "install unknown apps". Phase 4 makes a properly signed one.)
 3. They log in with **their own email** (the code is emailed) and tap **Allow** for notifications.
 4. **Their battery settings**, or notifications arrive late — vivo/iQOO/Oppo/Realme/Xiaomi:
-   Settings → Apps → Ro-Yan → Battery → **Don't restrict / Allow background activity**, and
+   Settings → Apps → Mr. Momo → Battery → **Don't restrict / Allow background activity**, and
    **Autostart** on. Samsung: Battery → **Unrestricted**.
 
 **What they get** (one notification per order, replaced as it moves on):
@@ -142,7 +142,7 @@ The app isn't on the Play Store, so you install it on each customer's phone your
 
 They also still get the "order ready" email, and the live updates while the app is open.
 If they cancel it themselves, only you are told. They can turn their notifications off in
-Settings → Apps → Ro-Yan → Notifications → **My order updates**.
+Settings → Apps → Mr. Momo → Notifications → **My order updates**.
 
 **Updating their app:** every app change needs **▶ Run** (or a new APK) on each of their phones too.
 

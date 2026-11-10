@@ -28,6 +28,7 @@ def order_payload(o: Order, admin: bool = False) -> dict:
         "status": o.status,
         "total": o.total,
         "note": o.note,
+        "pickup_minutes": o.pickup_minutes,  # minutes after created_at the customer said they'd arrive
         "client_key": o.client_key,  # lets the app tell that a checkout whose reply was lost went through
         "name": o.customer.name,
         "email": o.customer.email if admin else mask(o.customer.email),
@@ -64,9 +65,9 @@ def notify_ready(order_number: int, email: str, name: Optional[str]) -> None:
     try:
         mailer.send_mail(
             email,
-            f"Your Ro-Yan order #{order_number} is ready",
+            f"Your Mr. Momo order #{order_number} is ready",
             f"Hi {name or 'there'},\n\nOrder #{order_number} is ready — please collect it at "
-            "the counter and pay cash.\n\n— Ro-Yan Brews",
+            "the counter and pay cash.\n\n— Mr. Momo",
         )
     except Exception as exc:  # a failed courtesy email must never matter — just leave a trace
         request_log.record("TASK", "notify_ready", error=request_log.describe(exc))

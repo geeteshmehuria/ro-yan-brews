@@ -6,6 +6,10 @@ import { beep } from "../utils/alerts.js";
 import { useBackButton } from "../hooks/backButton.js";
 import { MUTE_KEY, isActive } from "../config/constants.js";
 import { useSocket } from "../hooks/useSocket.js";
+import { useNow } from "../hooks/useNow.js";
+import { pickupLabel } from "../utils/pickup.js";
+import { Logo } from "../components/ui.jsx";
+import StallPhone from "./StallPhone.jsx";
 import FeedbackSection from "./FeedbackSection.jsx";
 import MenuSection from "./MenuSection.jsx";
 import TodaySection from "./TodaySection.jsx";
@@ -13,12 +17,14 @@ import OrderDetail, { StatusActions, ago, placedAt, sizeLabel } from "./OrderDet
 import { disablePush, enablePush } from "../services/push.js";
 import { ask, tell } from "../components/dialog.jsx";
 
-// Orders not yet ready turn amber after 10 minutes and red after 20.
+// Orders not yet ready turn amber after 10 minutes and red after 20 — or, when the customer said
+// they're coming later than that, amber at their arrival time and red 10 minutes after it.
 const WAIT_AMBER = 10, WAIT_RED = 20;
 const waitLevel = (order, now) => {
   if (order.status !== "placed" && order.status !== "preparing") return null;
   const mins = (now - new Date(order.created_at + "Z")) / 60000;
-  return mins >= WAIT_RED ? "red" : mins >= WAIT_AMBER ? "amber" : null;
+  const due = order.pickup_minutes || 0;
+  return mins >= Math.max(WAIT_RED, due + 10) ? "red" : mins >= Math.max(WAIT_AMBER, due) ? "amber" : null;
 };
 
 function OrderCard({ order, now, setStatus, open }) {
@@ -45,6 +51,7 @@ function OrderCard({ order, now, setStatus, open }) {
       <div className="my-2 text-sm">
         <b>{count} {count === 1 ? "item" : "items"}</b> <span className="text-muted">· {summary}</span>
       </div>
+      {isActive(order) && pickupLabel(order) && <div className="mb-2 text-sm font-bold text-accent2">🕒 {pickupLabel(order)}</div>}
       {order.note && <div className="mb-2 truncate text-sm font-bold text-accent">📝 {order.note}</div>}
       {/* buttons act on the order; they must not also open the detail panel */}
       <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
@@ -73,13 +80,6 @@ function readMuted() {
   try { return localStorage.getItem(MUTE_KEY) === "1"; } catch { return false; }
 }
 
-// Re-render every 30 s so "12 min ago" stays true.
-function useNow(ms = 30000) {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), ms); return () => clearInterval(t); }, [ms]);
-  return now;
-}
-
 export default function AdminApp() {
   const navigate = useNavigate();
   const session = getSession();
@@ -95,6 +95,7 @@ export default function AdminApp() {
   const [menuFilter, setMenuFilter] = useState("all"); // "out" = only out-of-stock items
   const [muted, setMuted] = useState(readMuted);
   const [storeBusy, setStoreBusy] = useState(false);
+  const [phone, setPhone] = useState(null); // the stall's number customers can call (null = none set)
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
   const now = useNow();
@@ -122,8 +123,8 @@ export default function AdminApp() {
   useEffect(() => { if (isAdmin && tab === "orders") refreshStats(); }, [isAdmin, tab, refreshStats]); // e.g. stock changed
 
   const load = useCallback(async () => {
-    const [o, s] = await Promise.all([api("/api/admin/orders"), api("/api/admin/stats/today")]);
-    setOrders(o); setStats(s);
+    const [o, s, store] = await Promise.all([api("/api/admin/orders"), api("/api/admin/stats/today"), api("/api/store")]);
+    setOrders(o); setStats(s); setPhone(store.phone ?? null);
   }, []);
 
   // Only a rejected session logs the owner out. A network error or a 502 while the
@@ -147,8 +148,9 @@ export default function AdminApp() {
 
   // Live alerts. After a reconnect, reload so nothing placed while offline is missed.
   useSocket(isAdmin && `/ws/admin?token=${encodeURIComponent(getToken())}`, (msg) => {
-    if (msg.type === "store") {  // paused / reopened from another device
+    if (msg.type === "store") {  // paused / reopened / phone changed from another device
       setStats((st) => st && { ...st, accepting_orders: msg.accepting_orders });
+      setPhone(msg.phone ?? null);
       return;
     }
     if (msg.type === "new_order") {
@@ -209,7 +211,10 @@ export default function AdminApp() {
   return (
     <div className="screen-in px-3 pb-[calc(var(--sab)+6rem)]">
       <header className="glass sticky top-[calc(var(--sat)+0.5rem)] z-40 mt-3 flex items-center justify-between gap-2 px-4 py-3">
-        <div className="text-lg font-black">RO-YAN <span className="text-accent">ADMIN</span></div>
+        <div className="flex items-center gap-2 text-lg font-black">
+          <Logo className="h-9 w-9 !rounded-xl" />
+          <span>Mr. MOMO <span className="text-accent">ADMIN</span></span>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={toggleMute} aria-label={muted ? "Turn new-order sound on" : "Mute new-order sound"}
             aria-pressed={muted} className="glass-strong press h-9 w-9 rounded-xl text-base">{muted ? "🔕" : "🔔"}</button>
@@ -242,6 +247,8 @@ export default function AdminApp() {
               </span>
             </button>
           )}
+
+          {stats && <StallPhone phone={phone} onSaved={setPhone} />}
 
           {stats && (
             <div className="mt-3 grid grid-cols-3 gap-2.5">

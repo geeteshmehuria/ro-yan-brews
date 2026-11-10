@@ -11,7 +11,7 @@ def stats(client, owner):
 
 
 def test_store_is_open_by_default(client):
-    assert client.get("/api/store").json() == {"accepting_orders": True, "message": None}
+    assert client.get("/api/store").json() == {"accepting_orders": True, "message": None, "phone": None}
 
 
 def test_paused_store_refuses_new_orders_until_reopened(client, login, make_item):

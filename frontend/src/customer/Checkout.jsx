@@ -2,14 +2,16 @@ import { useState } from "react";
 
 import { MAX_QTY } from "../config/constants.js";
 import { Back, BigButton } from "../components/ui.jsx";
+import { PICKUP_OPTIONS } from "../utils/pickup.js";
 
 export function CartScreen({ paused, totals, back, placeOrder, changeLine, removeLine }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
+  const [pickup, setPickup] = useState(0); // minutes until they reach the stall (0 = now)
   const submit = async () => {
     setBusy(true); setErr("");
-    try { await placeOrder(note); }
+    try { await placeOrder(note, pickup); }
     catch (e) { setErr(e.message); setBusy(false); }
   };
   return (
@@ -53,6 +55,19 @@ export function CartScreen({ paused, totals, back, placeOrder, changeLine, remov
       })}
       {totals.count > 0 && (
         <>
+          <div className="glass mt-2 p-3">
+            <div id="pickup-label" className="text-sm font-bold">🕒 When will you reach the stall?</div>
+            <div className="mt-2 grid grid-cols-4 gap-1.5" role="radiogroup" aria-labelledby="pickup-label">
+              {PICKUP_OPTIONS.map((o) => (
+                <button key={o.minutes} role="radio" aria-checked={pickup === o.minutes} onClick={() => setPickup(o.minutes)}
+                  className={`press min-h-[44px] rounded-xl border text-sm font-bold ${
+                    pickup === o.minutes ? "border-transparent bg-accent2 text-bg1" : "border-[var(--stroke)] text-muted"}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted">The stall times your order so it is hot when you arrive.</p>
+          </div>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} rows={2}
             placeholder="Special instructions (optional) — e.g. less spicy"
             className="glass mt-2 w-full p-3 text-ink placeholder:text-muted focus:border-accent focus:outline-none" />

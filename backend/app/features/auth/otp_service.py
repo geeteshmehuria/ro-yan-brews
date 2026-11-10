@@ -35,8 +35,8 @@ def deliver(email: str, code: str) -> None:
         return
     mailer.send_mail(
         email,
-        f"{code} is your Ro-Yan Brews code",
-        f"Your Ro-Yan Brews login code is: {code}\n\n"
+        f"{code} is your Mr. Momo code",
+        f"Your Mr. Momo login code is: {code}\n\n"
         f"It expires in {OTP_TTL_MINUTES} minutes. "
         "If you didn't request this, ignore this email.",
     )

@@ -2,12 +2,14 @@ import { useState } from "react";
 
 import { ICONS, LABELS, MAX_QTY } from "../config/constants.js";
 import { useReveal } from "../hooks/useReveal.js";
+import { Logo } from "../components/ui.jsx";
 
 function Header({ activeCount, openOrders, openProfile }) {
   return (
     <header className="glass sticky top-[calc(var(--sat)+0.5rem)] z-40 mx-3 mt-3 flex items-center justify-between px-4 py-3">
-      <div className="text-lg font-black tracking-wide">
-        RO-YAN <span className="text-accent">BREWS</span>
+      <div className="flex items-center gap-2 text-lg font-black tracking-wide">
+        <Logo className="h-9 w-9 !rounded-xl" />
+        <span>Mr. <span className="text-accent">MOMO</span></span>
       </div>
       <div className="flex gap-2">
         <button onClick={openOrders} className="glass-strong press relative rounded-xl px-3 py-1.5 text-sm font-bold">
@@ -39,19 +41,26 @@ function ActiveOrders({ orders, open }) {
   );
 }
 
-function Hero() {
+function Hero({ menu }) {
   const ref = useReveal();
   return (
     <section ref={ref} className="glass reveal relative mx-3 mt-5 overflow-hidden px-5 py-8 text-center">
       <div className="shine" />
-      <h1 className="text-3xl font-black leading-tight">
-        Fresh &amp; Fast,<br /><em className="not-italic text-accent">Made for You</em>
+      <span className="inline-block rounded-full border border-accent2 px-3 py-1 text-xs font-black uppercase tracking-wider text-accent2">
+        🌿 100% Pure Veg
+      </span>
+      <h1 className="mt-3 text-3xl font-black leading-tight">
+        Fresh Momos,<br /><em className="not-italic text-accent">Happy You!</em>
       </h1>
-      <p className="mt-2 text-sm text-muted">Shakes · Burgers · Sandwiches · Momos · Fries</p>
-      <a href="#cat-Shakes"
-        className="press mt-4 inline-block rounded-xl bg-accent px-8 py-3.5 font-black text-bg1 shadow-[0_6px_24px_var(--accent-glow)]">
-        Order Now ↓
-      </a>
+      <p className="mt-2 text-sm text-muted">
+        {menu?.length ? menu.map((g) => g.category).join(" · ") : "Steamed to perfection"}
+      </p>
+      {menu?.length > 0 && (
+        <a href={`#cat-${menu[0].category}`}
+          className="press mt-4 inline-block rounded-xl bg-accent px-8 py-3.5 font-black text-bg1 shadow-[0_6px_24px_var(--accent-glow)]">
+          Order Now ↓
+        </a>
+      )}
     </section>
   );
 }
@@ -130,7 +139,8 @@ function Skeletons() {
 
 export default function MenuScreen({ paused, menu, error, retry, cart, totals, sizeOf, setSizes, changeQty,
   activeOrders, openOrders, openProfile, openCart }) {
-  const [active, setActive] = useState("Shakes");
+  const [picked, setActive] = useState(null); // the chip tapped last; until then the first category
+  const active = picked ?? menu?.[0]?.category;
   return (
     <div className="screen-in pb-32">
       <Header activeCount={activeOrders.length} openOrders={openOrders} openProfile={openProfile} />
@@ -141,7 +151,7 @@ export default function MenuScreen({ paused, menu, error, retry, cart, totals, s
           <p className="mt-1 text-sm text-muted">You can still look at the menu and track your orders.</p>
         </div>
       )}
-      <Hero />
+      <Hero menu={menu} />
       {error && (
         <div className="glass mx-3 mt-4 p-4 text-center">
           <p className="text-danger">{error}</p>

@@ -3,7 +3,7 @@ import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
 import { api, setToken } from "../services/api.js";
 import { useBackButton } from "../hooks/backButton.js";
-import { Back, BigButton, Field } from "../components/ui.jsx";
+import { Back, BigButton, Field, Logo } from "../components/ui.jsx";
 
 function EmailScreen({ email, setEmail, next, googleClientId, onGoogleSuccess, googleErr, setGoogleErr, title, subtitle }) {
   const [err, setErr] = useState("");
@@ -29,6 +29,7 @@ function EmailScreen({ email, setEmail, next, googleClientId, onGoogleSuccess, g
   return (
     <main className="screen-in px-3 pb-10">
       <div className="px-3 py-8 text-center max-w-sm mx-auto">
+        <Logo className="mx-auto mb-5 h-40 w-40 !rounded-[28px] p-1 shadow-dialog" />
         <h2 className="text-xl font-black">{title}</h2>
         <p className="mt-1 text-sm text-muted">{subtitle}</p>
 
@@ -132,7 +133,7 @@ function OtpScreen({ email, back, onSubmit, devMode, cta }) {
 // Used by both customer and admin apps.
 // allowGoogle=false in the Android app: Google refuses to sign in inside an app's web view.
 export function Login({ onDone, cta = "Log in", allowGoogle = true,
-  title = "Welcome to Ro-Yan", subtitle = "Sign in to order or track your brew" }) {
+  title = "Welcome to Mr. Momo", subtitle = "Sign in to order fresh momos and track your order" }) {
   const [step, setStep] = useState("email"); // email | otp
   useBackButton(() => setStep("email"), step === "otp"); // Android Back: re-enter the email
   const [email, setEmail] = useState("");

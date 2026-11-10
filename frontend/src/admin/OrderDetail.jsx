@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useBackButton } from "../hooks/backButton.js";
 import { LABELS, STATUSES, isActive } from "../config/constants.js";
 import { ask } from "../components/dialog.jsx";
+import { pickupLabel } from "../utils/pickup.js";
 
 const SIZE_LABELS = { half: "Half", full: "Full" };
 
@@ -99,6 +100,7 @@ export default function OrderDetail({ order, now, setStatus, onClose }) {
             className="press glass-strong h-11 w-11 rounded-full text-lg font-black">✕</button>
         </div>
         <p className="mt-1 text-sm text-muted">Placed {placedAt(order)} · {ago(order, now)}</p>
+        {pickupLabel(order) && <p className="mt-1 text-lg font-extrabold text-accent2">🕒 {pickupLabel(order)}</p>}
 
         <div className="glass mt-4 p-4">
           <div className="text-xl font-extrabold">{order.name || order.email}</div>

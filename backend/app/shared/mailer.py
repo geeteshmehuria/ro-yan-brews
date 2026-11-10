@@ -19,7 +19,7 @@ SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))  # 465 = SSL, anything else = STARTTLS
 SMTP_USER = os.getenv("SMTP_USER", "")           # SMTP login
 SMTP_PASS = os.getenv("SMTP_PASS", "")           # App Password / SMTP key
-SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Ro-Yan Brews")
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Mr. Momo")
 MAIL_FROM = os.getenv("MAIL_FROM") or SMTP_USER  # the visible sender address
 
 

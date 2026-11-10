@@ -2,25 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============ Ocean theme tokens — single source of truth ============ */
+/* ============ Mr. Momo theme tokens — single source of truth ============
+   From the stall's poster: warm charcoal, yellow price tags, "pure veg" green. */
 :root {
-  --bg1: #0a1420;
-  --bg2: #0f2a3a;
-  --accent: #38bdf8;
-  --accent2: #34d399;
-  --text: #f4f1e8;
-  --muted: rgba(244, 241, 232, 0.55);
+  --bg1: #17110d;
+  --bg2: #2b1a10;
+  --accent: #ffc93c;                        /* poster yellow: buttons, prices, order numbers */
+  --accent2: #4ade80;                       /* pure-veg green: money, "ready", on-switches */
+  --text: #fff7ea;
+  --muted: rgba(255, 247, 234, 0.6);
   --glass: rgba(255, 255, 255, 0.07);
   --glass-strong: rgba(255, 255, 255, 0.12);
   --stroke: rgba(255, 255, 255, 0.14);
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.12); /* tinted background behind danger text (paused banners) */
-  --warn: #f59e0b;                          /* "needs attention": waiting orders, out-of-stock */
-  --warn-soft: rgba(245, 158, 11, 0.1);
+  --warn: #fb923c;                          /* "needs attention": waiting orders, out-of-stock (orange, so it differs from the yellow accent) */
+  --warn-soft: rgba(251, 146, 60, 0.12);
   --star: #facc15;                          /* rating stars */
-  --bar: rgba(10, 20, 32, 0.85);            /* floating bars: admin tab bar, menu category strip */
-  --bar-soft: rgba(10, 20, 32, 0.75);       /* customer cart bar */
-  --accent-glow: rgba(56, 189, 248, 0.4);   /* glow under accent buttons */
+  --bar: rgba(23, 17, 13, 0.88);            /* floating bars: admin tab bar, menu category strip */
+  --bar-soft: rgba(23, 17, 13, 0.78);       /* customer cart bar */
+  --bar-status: rgba(23, 17, 13, 0.45);     /* frosted strip behind the status bar */
+  --accent-glow: rgba(255, 201, 60, 0.35);  /* glow under accent buttons, pulse ring */
+  --accent-ring: rgba(255, 201, 60, 0.12);  /* the pulse ring at its widest */
   --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.45); /* bars pinned to the bottom */
   --shadow-dialog: 0 20px 60px rgba(0, 0, 0, 0.5);
   --radius: 18px;
@@ -48,7 +51,7 @@ body {
 /* Frosted strip behind the status bar, so its icons stay readable over scrolled content. */
 body::before {
   content: ""; position: fixed; top: 0; left: 0; right: 0; height: var(--sat); z-index: 45;
-  background: rgba(10, 20, 32, 0.45); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  background: var(--bar-status); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   pointer-events: none;
 }
 
@@ -70,7 +73,7 @@ body::before {
 }
 
 /* ============ background orbs ============ */
-.orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.35; z-index: -1; pointer-events: none; }
+.orb { position: fixed; border-radius: 50%; filter: blur(70px); opacity: 0.22; z-index: -1; pointer-events: none; }
 .orb1 { width: 280px; height: 280px; background: var(--accent); top: -80px; right: -80px; animation: float1 14s ease-in-out infinite; }
 .orb2 { width: 240px; height: 240px; background: var(--accent2); bottom: 10%; left: -100px; animation: float2 18s ease-in-out infinite; }
 @keyframes float1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-40px, 60px); } }
@@ -90,8 +93,8 @@ body::before {
 
 .pulse-dot { animation: pulse 1.6s infinite; }
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.3); }
-  50% { box-shadow: 0 0 0 10px rgba(56, 189, 248, 0.12); }
+  0%, 100% { box-shadow: 0 0 0 5px var(--accent-glow); }
+  50% { box-shadow: 0 0 0 10px var(--accent-ring); }
 }
 
 .flash-new { animation: flash 1.2s ease 3; }

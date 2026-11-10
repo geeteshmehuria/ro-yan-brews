@@ -1,4 +1,4 @@
-"""Ro-Yan Brews API — creates the FastAPI app.
+"""Mr. Momo API — creates the FastAPI app.
 
 Each feature lives in app/features/<feature>/ with its own router, service and schemas.
 Things several features use (database, models, auth tokens, clock, mailer, live connections)
@@ -25,14 +25,15 @@ async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     add_missing_columns(engine)
     request_log.prune()
-    # The seed menu is placeholder data: never auto-load it into production.
+    # Fills an empty database only. Never automatic in production: the live menu is the owner's
+    # (changed in the dashboard, or once with menu_seed.replace_menu).
     if os.getenv("SEED_MENU", "false" if auth.IS_PROD else "true") == "true":
         with SessionLocal() as db:
             seed_menu(db)
     yield
 
 
-app = FastAPI(title="Ro-Yan Brews API", lifespan=lifespan)
+app = FastAPI(title="Mr. Momo API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
