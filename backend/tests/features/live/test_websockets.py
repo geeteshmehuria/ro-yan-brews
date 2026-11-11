@@ -82,3 +82,17 @@ def test_ws_me_pool_is_cleaned_up(client, login):
             break
         time.sleep(0.02)
     assert cid not in manager.customers
+
+
+def test_ws_closes_with_4401_when_the_token_expires(client, login):
+    import jwt
+
+    from app.shared import auth
+    session = jwt.decode(login(OWNER), auth.JWT_SECRET, algorithms=["HS256"])
+    for path in ("/ws/admin", "/ws/me"):
+        short = jwt.encode({**session, "exp": int(time.time()) + 2}, auth.JWT_SECRET, algorithm="HS256")
+        with client.websocket_connect(f"{path}?token={short}") as ws:
+            with pytest.raises(WebSocketDisconnect) as e:
+                ws.receive_json()  # nothing is sent; the server closes once the token lapses
+            assert e.value.code == 4401
+        assert not manager.admin and not manager.customers  # and the socket left its pool

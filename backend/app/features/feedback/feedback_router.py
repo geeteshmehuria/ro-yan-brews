@@ -14,8 +14,11 @@ from app.shared.models import Feedback, MenuItem, Order
 router = APIRouter(tags=["feedback"])
 
 
+# `async def` with no `await` (like create_order): the "already rated?" check and the insert run
+# uninterrupted on the one worker, so two submissions rating different items can't both land.
+# The unique (order_id, menu_item_id) constraint alone only stops repeats of the same item.
 @router.post("/api/orders/{order_id}/feedback", status_code=201)
-def give_feedback(order_id: int, body: FeedbackIn, request: Request, db: Session = Depends(get_db)) -> dict:
+async def give_feedback(order_id: int, body: FeedbackIn, request: Request, db: Session = Depends(get_db)) -> dict:
     """Rate the products of one of your own collected orders — once per order. Only real,
     completed orders count, so every review comes from someone who actually got the food."""
     session = auth.current_customer(request)

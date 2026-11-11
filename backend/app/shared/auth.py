@@ -84,19 +84,13 @@ def require_admin(request: Request) -> dict:
     return session
 
 
-def _ws_session(token: str) -> Optional[dict]:
-    """WebSockets can't send headers, so they pass the JWT as ?token=."""
+def ws_session(token: str, admin: bool = False) -> Optional[dict]:
+    """WebSockets can't send headers, so they pass the JWT as ?token=. None = not allowed
+    (missing/invalid/expired, or not the owner when `admin`). Its `exp` ends the socket."""
     try:
-        return _decode(token) if token else None
+        session = _decode(token) if token else None
     except jwt.PyJWTError:
         return None
-
-
-def token_is_admin(token: str) -> bool:
-    session = _ws_session(token)
-    return bool(session) and is_admin_email(session.get("email", ""))
-
-
-def token_customer_id(token: str) -> Optional[int]:
-    session = _ws_session(token)
-    return session["cid"] if session else None
+    if session and admin and not is_admin_email(session.get("email", "")):
+        return None
+    return session
