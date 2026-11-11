@@ -12,7 +12,7 @@ it leaves the app. Phase status:
 | 1 | Admin app runs on your phone (login, orders, stock, feedback) | built — run it with the steps below |
 | 2 | Feel like an app: icon, splash, screen stays awake, back button | next |
 | 3 | Push notifications for new and cancelled orders (even when closed) | built — needs the Firebase setup below |
-| 4 | Signed release APK installed for daily use | later |
+| 4 | Signed release APK installed for daily use | built — make your key once, then build with the steps below |
 
 ---
 
@@ -116,6 +116,54 @@ place an order from the website → "New order #N · ₹…" with sound.
 | Alerts come late or only when the app is open | vivo/iQOO kill background apps: Settings → Apps → Mr. Momo → **Battery → Allow background activity / Don't restrict**, and turn on **Autostart** |
 | Still nothing | Neon: `SELECT * FROM t_log WHERE path = 'push' ORDER BY id DESC LIMIT 5;` shows FCM's error. `SELECT count(*) FROM push_tokens;` = 0 means the phone never registered (missing `google-services.json`, or permission denied) |
 
+## Phase 4 — the signed release APK (what the owner and customers install)
+
+The ▶ Run button installs a **debug** build, signed with a throwaway key that lives only on
+this PC. For daily use build a **release** APK, signed with **your own key** (a keystore file).
+Android only installs an update if it is signed with the **same key** as the installed app.
+
+**1. Make the key — once, ever.** In PowerShell, from `frontend\android`:
+```
+& "C:\Users\HP\.jdks\jbr-21.0.11\bin\keytool.exe" -genkeypair -v -keystore mr-momo-release.jks -storetype PKCS12 -alias mrmomo -keyalg RSA -keysize 2048 -validity 10000
+```
+It asks for a password (PKCS12 uses the same one for the store and the key) and your name /
+organisation (anything, e.g. "Mr. Momo"). Then create `frontend\android\keystore.properties`:
+```
+storeFile=mr-momo-release.jks
+storePassword=YOUR-PASSWORD
+keyAlias=mrmomo
+keyPassword=YOUR-PASSWORD
+```
+Both files are git-ignored (`*.jks`, `keystore.properties`) — never commit or send them.
+
+> ⚠️ **Back up `mr-momo-release.jks` and the password** (password manager + a copy off this PC).
+> Lose either and you can never update the app again: every phone would have to uninstall it
+> (and log in again) to install one signed with a new key.
+
+**2. Build it.** Gradle 8.14.3 needs **JDK 21** — Android Studio's own Java (JBR 25) fails with it:
+```
+cd ro-yan-brews\frontend
+npm run build:android
+cd android
+$env:JAVA_HOME = "C:\Users\HP\.jdks\jbr-21.0.11"
+.\gradlew.bat assembleRelease
+```
+The signed APK is **`frontend\android\app\build\outputs\apk\release\app-release.apk`**.
+(Without `keystore.properties` you get `app-release-unsigned.apk`, which phones refuse to install.)
+Bump `versionCode` in `frontend\android\app\build.gradle` before every build you hand out.
+
+**3. Install it.** Over USB: `adb install -r app\build\outputs\apk\release\app-release.apk`.
+Or send the file; on the phone tap it and allow "install unknown apps".
+
+> **First release install on a phone that has the debug app:** the signatures differ, so
+> Android refuses the update ("App not installed" / `INSTALL_FAILED_UPDATE_INCOMPATIBLE`).
+> Uninstall Mr. Momo first (`adb uninstall com.royanbrews.admin`), install the release APK, then
+> **log in again** and allow notifications again — uninstalling wipes the saved login. Only this
+> once: later release builds install over each other and keep the login.
+
+The app has `allowBackup="false"`: the saved login (the owner's included) is never copied
+into a phone backup or restored onto another phone.
+
 ## Customers' phones (the 5–6 people who get the app)
 
 The app isn't on the Play Store, so you install it on each customer's phone yourself.
@@ -124,8 +172,8 @@ The app isn't on the Play Store, so you install it on each customer's phone your
 1. On their phone: Settings → About phone → tap **Software version / Build number** 7 times →
    Developer options → **USB debugging** on (same as you did on your phone; brands differ slightly).
 2. Plug it into your PC → `npm run build:android` → pick their phone in Android Studio → **▶ Run**.
-   (Or build an APK — Build → Build App Bundle(s) / APK(s) → Build APK(s) — and send them the
-   file; they tap it and allow "install unknown apps". Phase 4 makes a properly signed one.)
+   Better: install the signed release APK from Phase 4 (`adb install -r …`, or send them the
+   file; they tap it and allow "install unknown apps").
 3. They log in with **their own email** (the code is emailed) and tap **Allow** for notifications.
 4. **Their battery settings**, or notifications arrive late — vivo/iQOO/Oppo/Realme/Xiaomi:
    Settings → Apps → Mr. Momo → Battery → **Don't restrict / Allow background activity**, and

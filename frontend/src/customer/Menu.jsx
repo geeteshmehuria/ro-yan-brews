@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { LABELS, MAX_QTY } from "../config/constants.js";
 import { useReveal } from "../hooks/useReveal.js";
@@ -8,7 +8,7 @@ import { SteamerArt } from "../components/SteamerArt.jsx";
 
 function Header({ activeCount, openOrders, openProfile }) {
   return (
-    <header className="sticky top-[calc(var(--sat)+0.5rem)] z-40 mx-3 mt-3 flex items-center justify-between rounded-[20px] border border-[var(--stroke)] bg-bar px-3 py-2.5 backdrop-blur-xl md:px-4">
+    <header className="flex items-center justify-between rounded-[20px] border border-[var(--stroke)] bg-[var(--glass)] px-3 py-2.5 md:px-4">
       <div className="flex items-center gap-2.5">
         <Logo className="h-9 w-9 !rounded-xl md:h-10 md:w-10" />
         <span className="font-display text-xl font-extrabold md:text-[22px]">Mr. <span className="text-accent">MOMO</span></span>
@@ -84,15 +84,22 @@ function Hero({ menu }) {
   );
 }
 
-function Chips({ menu, active, setActive }) {
+// Pinned right under the header (`--menu-head`, measured in MenuScreen) on a solid background,
+// so nothing scrolls visibly behind or between them. The chip of the section on screen is
+// highlighted, and kept in view in this row.
+function Chips({ menu, active, pick }) {
+  const row = useRef(null);
+  useEffect(() => {
+    const el = row.current;
+    const chip = el && [...el.children].find((c) => c.dataset.cat === active);
+    if (!chip) return;
+    // scroll only this row: scrollIntoView could also move (and interrupt) the page's own scroll
+    el.scrollTo({ left: chip.offsetLeft - (el.clientWidth - chip.offsetWidth) / 2, behavior: "smooth" });
+  }, [active]);
   return (
-    <div className="sticky top-[calc(var(--sat)+4.25rem)] z-30 flex gap-2 overflow-x-auto bg-gradient-to-b from-bar to-transparent px-3 py-3 [scrollbar-width:none]">
+    <div ref={row} className="sticky top-[var(--menu-head)] z-30 flex gap-2 overflow-x-auto bg-bg1 px-3 py-3 [scrollbar-width:none]">
       {menu.map((g) => (
-        <button key={g.category}
-          onClick={() => {
-            setActive(g.category);
-            document.getElementById(`cat-${g.category}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
+        <button key={g.category} data-cat={g.category} onClick={() => pick(g.category)}
           className={`press flex flex-none items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2.5 text-sm font-bold transition-all ${
             active === g.category
               ? "border-transparent bg-accent text-bg1"
@@ -108,7 +115,15 @@ function Chips({ menu, active, setActive }) {
 
 function ItemCard({ item, size, setSize, qty, changeQty }) {
   const ref = useReveal();
+  const plus = useRef(null);
+  const added = useRef(false); // ADD was just tapped
   const price = size === "half" ? item.price_half : item.price_full;
+  // ADD turns into the − / + stepper and the tapped button disappears. Hand focus to the new +
+  // (without scrolling), so the browser never goes looking for a new focus target and moves the page.
+  useEffect(() => {
+    if (added.current && qty > 0) plus.current?.focus({ preventScroll: true });
+    added.current = false;
+  }, [qty]);
   return (
     <div ref={ref}
       className={`reveal mb-3 flex gap-3.5 rounded-[20px] border border-[var(--stroke)] bg-[var(--glass)] p-3.5 backdrop-blur-md md:mb-0 md:p-4 ${item.is_available ? "" : "opacity-40"}`}>
@@ -140,11 +155,11 @@ function ItemCard({ item, size, setSize, qty, changeQty }) {
             <div className="flex flex-none items-center overflow-hidden rounded-xl border-[1.5px] border-accent">
               <button onClick={() => changeQty(-1)} aria-label={`One less ${item.name}`} className="h-10 w-10 text-xl font-extrabold text-accent">−</button>
               <div className="w-8 text-center text-lg font-extrabold">{qty}</div>
-              <button onClick={() => changeQty(1)} disabled={qty >= MAX_QTY} aria-label={`One more ${item.name}`}
+              <button ref={plus} onClick={() => changeQty(1)} disabled={qty >= MAX_QTY} aria-label={`One more ${item.name}`}
                 className="h-10 w-10 text-xl font-extrabold text-accent disabled:opacity-30">+</button>
             </div>
           ) : (
-            <button onClick={() => changeQty(1)}
+            <button onClick={() => { added.current = true; changeQty(1); }}
               className="press h-10 flex-none rounded-xl bg-accent px-5 text-sm font-extrabold text-bg1 shadow-[0_4px_18px_var(--accent-glow)]">
               ADD +
             </button>
@@ -167,12 +182,58 @@ function Skeletons() {
 
 export default function MenuScreen({ paused, menu, error, retry, cart, totals, sizeOf, setSizes, changeQty,
   activeOrders, openOrders, openProfile, openCart }) {
-  const [picked, setActive] = useState(null); // the chip tapped last; until then the first category
-  const active = picked ?? menu?.[0]?.category;
+  const root = useRef(null);
+  const head = useRef(null);
+  const [current, setCurrent] = useState(null); // category on screen (or tapped); null = the first
+  const active = current ?? menu?.[0]?.category;
+  const lock = useRef(null); // the tapped category, kept while its smooth scroll runs
+
+  // --menu-head = the pinned header's height: the chips row sticks right below it.
+  useLayoutEffect(() => {
+    const h = head.current, r = root.current;
+    if (!h || !r) return;
+    const set = () => r.style.setProperty("--menu-head", `${h.offsetHeight}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(h);
+    return () => ro.disconnect();
+  }, []);
+
+  // Follow scrolling: the active chip is the last section heading that has passed under the
+  // header + chips. The observer's area is everything below them, so a heading leaving it
+  // upwards is always reported (a thin line could be skipped over by a fast fling).
+  useEffect(() => {
+    if (!menu?.length) return;
+    const headings = menu.map((g) => document.getElementById(`cat-${g.category}`)).filter(Boolean);
+    const chips = root.current?.querySelector("[data-cat]")?.parentElement;
+    const line = (head.current?.offsetHeight || 0) + (chips?.offsetHeight || 0) + 12;
+    const update = () => {
+      if (lock.current) return;
+      let cat = menu[0].category;
+      headings.forEach((h, i) => { if (h.getBoundingClientRect().top <= line + 1) cat = menu[i].category; });
+      setCurrent(cat);
+    };
+    const io = new IntersectionObserver(update, { rootMargin: `-${line}px 0px 0px 0px` });
+    headings.forEach((h) => io.observe(h));
+    return () => io.disconnect();
+  }, [menu]);
+
+  const pick = (cat) => {
+    setCurrent(cat);
+    lock.current = cat;
+    const unlock = () => { lock.current = null; };
+    window.addEventListener("scrollend", unlock, { once: true });
+    setTimeout(unlock, 1500); // browsers without scrollend
+    document.getElementById(`cat-${cat}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className="screen-in pb-32 font-body">
+    <div ref={root} className="screen-in pb-32 font-body">
       <FoodBackground />
-      <Header activeCount={activeOrders.length} openOrders={openOrders} openProfile={openProfile} />
+      {/* solid from the very top (under the status bar) to below the header */}
+      <div ref={head} className="sticky top-0 z-40 -mt-[var(--sat)] bg-bg1 px-3 pb-2 pt-[calc(var(--sat)+0.75rem)]">
+        <Header activeCount={activeOrders.length} openOrders={openOrders} openProfile={openProfile} />
+      </div>
       <ActiveOrders orders={activeOrders} open={openOrders} />
       {paused && (
         <div role="status" className="mx-3 mt-3 rounded-2xl border border-danger bg-danger-soft p-4 text-center">
@@ -190,12 +251,12 @@ export default function MenuScreen({ paused, menu, error, retry, cart, totals, s
       {!menu && !error && <div className="mt-5"><Skeletons /></div>}
       {menu && (
         <>
-          <Chips menu={menu} active={active} setActive={setActive} />
+          <Chips menu={menu} active={active} pick={pick} />
           <main className="px-3">
             {menu.map((g) => (
               <section key={g.category}>
                 <h2 id={`cat-${g.category}`}
-                  className="mb-3 mt-5 flex items-center gap-3 font-display text-2xl font-extrabold [scroll-margin-top:calc(var(--sat)+8.5rem)] md:mt-8 md:text-[30px]">
+                  className="mb-3 mt-5 flex items-center gap-3 font-display text-2xl font-extrabold [scroll-margin-top:calc(var(--menu-head)+4.5rem)] md:mt-8 md:text-[30px]">
                   {g.category}
                   <span className="h-0.5 flex-1 bg-gradient-to-r from-[var(--accent-glow)] to-transparent" />
                 </h2>

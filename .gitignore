@@ -17,4 +17,8 @@ venv/
 .idea/
 # Firebase app config of the Android app: kept local, not pushed (see docs/ANDROID.md, Phase 3)
 frontend/android/app/google-services.json
+# Release signing key and its passwords (see docs/ANDROID.md, Phase 4): never commit, back up safely
+frontend/android/keystore.properties
+*.jks
+*.keystore
 .ruff_cache/

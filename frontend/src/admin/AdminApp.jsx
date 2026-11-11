@@ -220,7 +220,10 @@ export default function AdminApp() {
   const showOutOfStock = () => { setMenuFilter("out"); setTab("menu"); };
   const card = (o) => <OrderCard key={o.id} order={o} now={now} setStatus={setStatus} open={() => setOpenId(o.id)} />;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!await ask({ title: "Log out?",
+      message: "This phone stops getting new-order alerts until you log in again with the owner email.",
+      confirmLabel: "Log out", cancelLabel: "Stay logged in", tone: "danger" })) return;
     disablePush(); // not awaited: api() reads the session token synchronously, and a sleeping backend would freeze the button
     logout();
     navigate("/", { replace: true });

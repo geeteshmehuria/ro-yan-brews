@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { api } from "../services/api.js";
 import { FoodBackground } from "../components/ui.jsx";
+import { ask } from "../components/dialog.jsx";
 import { BackIcon, CheckIcon, MailIcon, UserIcon } from "../components/icons.jsx";
 
 export default function ProfileScreen({ me, onSaved, onLogout, back }) {
@@ -62,7 +63,9 @@ export default function ProfileScreen({ me, onSaved, onLogout, back }) {
           </form>
 
           <div className="border-t-2 border-dashed border-[var(--stroke)] px-6 py-4 text-center">
-            <button onClick={onLogout} className="press rounded-xl border border-[var(--danger-soft)] px-6 py-2.5 font-bold text-danger">
+            <button onClick={async () => await ask({ title: "Log out?",
+              message: "Your cart is cleared and this phone stops getting your order updates. Log in again with your email any time.",
+              confirmLabel: "Log out", cancelLabel: "Stay logged in", tone: "danger" }) && onLogout()} className="press rounded-xl border border-[var(--danger-soft)] px-6 py-2.5 font-bold text-danger">
               Log out
             </button>
           </div>

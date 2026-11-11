@@ -18,6 +18,9 @@ export function CartScreen({ paused, totals, back, placeOrder, changeLine, remov
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
   const [pickup, setPickup] = useState(0); // minutes until they reach the stall (0 = now)
+  // Typing the note (keyboard open): the phone's bill sheet shrinks to the total and the button,
+  // without the navigation-bar padding (the keyboard covers that bar), so the form has room.
+  const [typing, setTyping] = useState(false);
   const submit = async () => {
     setBusy(true); setErr("");
     try { await placeOrder(note, pickup); }
@@ -27,7 +30,8 @@ export function CartScreen({ paused, totals, back, placeOrder, changeLine, remov
   const pickupText = pickup === 0 ? "Now" : `in ${pickup} min`;
 
   return (
-    <main className={`screen-in mx-auto max-w-[1040px] px-3 font-body ${empty ? "pb-10" : "pb-[calc(var(--sab)+13rem)] md:pb-12"}`}>
+    <main className={`screen-in mx-auto max-w-[1040px] px-3 font-body ${
+      empty ? "pb-10" : typing ? "pb-32 md:pb-12" : "pb-[calc(var(--sab)+13rem)] md:pb-12"}`}>
       <FoodBackground />
       <button onClick={back} className="press flex items-center gap-1.5 px-1 py-4 font-bold text-accent">
         <BackIcon className="h-[18px] w-[18px]" /> Back to menu
@@ -104,6 +108,7 @@ export function CartScreen({ paused, totals, back, placeOrder, changeLine, remov
                 Special instructions <span className="font-medium text-muted">(optional)</span>
               </label>
               <textarea id="order-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} rows={2}
+                onFocus={() => setTyping(true)} onBlur={() => setTyping(false)}
                 placeholder="e.g. less spicy, extra chutney"
                 className="resize-none rounded-xl border border-[var(--stroke)] bg-[var(--glass)] p-3 text-ink placeholder:text-muted focus:border-accent focus:outline-none" />
             </section>
@@ -113,7 +118,8 @@ export function CartScreen({ paused, totals, back, placeOrder, changeLine, remov
           <aside aria-label="Bill"
             className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-[520px] md:sticky md:top-6 md:z-auto md:mx-0 md:w-[340px] md:max-w-none md:flex-none">
             <div aria-hidden="true" className="absolute -bottom-3 left-2.5 right-[-10px] top-4 hidden rotate-[2.5deg] rounded-[24px] bg-accent md:block" />
-            <div className="relative rounded-t-[26px] bg-ink px-5 pb-[calc(var(--sab)+1.25rem)] pt-4 text-bg1 shadow-float md:rounded-[24px] md:px-6 md:pb-6 md:pt-5">
+            <div className={`relative rounded-t-[26px] bg-ink px-5 text-bg1 shadow-float md:rounded-[24px] md:px-6 md:pb-6 md:pt-5 ${
+              typing ? "pb-3 pt-3" : "pb-[calc(var(--sab)+1.25rem)] pt-4"}`}>
               <div className="hidden items-center justify-between md:flex">
                 <b className="font-display text-[22px]">Bill</b>
                 <span className="text-[13px] opacity-70">Pickup · {pickupText}</span>
@@ -130,13 +136,16 @@ export function CartScreen({ paused, totals, back, placeOrder, changeLine, remov
                 <span className="font-bold">Total <span className="font-medium opacity-60 md:hidden">· {totals.count} {totals.count === 1 ? "item" : "items"}</span></span>
                 <b className="font-display text-[30px] leading-none md:text-[34px]">₹{totals.total}</b>
               </div>
-              <div className="mb-3 mt-2 flex items-center gap-2 rounded-xl text-[13px] font-bold md:mt-4 md:bg-[var(--accent2-soft)] md:px-3.5 md:py-3 md:text-sm">
+              <div className={`mb-3 mt-2 items-center gap-2 rounded-xl text-[13px] font-bold md:mt-4 md:flex md:bg-[var(--accent2-soft)] md:px-3.5 md:py-3 md:text-sm ${
+                typing ? "hidden" : "flex"}`}>
                 <CashIcon className="h-[18px] w-[18px]" /> Pay cash when you collect
               </div>
               {paused ? <p role="status" className="mb-3 rounded-xl bg-danger px-3 py-2 text-center text-sm font-bold text-bg1">⏸ {paused}</p>
                 : err && <p role="alert" className="mb-3 rounded-xl bg-danger px-3 py-2 text-center text-sm font-bold text-bg1">{err}</p>}
-              <button onClick={submit} disabled={!totals.count || busy || !!paused}
-                className="press flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-bg1 text-lg font-extrabold text-accent disabled:opacity-50">
+              {/* mousedown would blur the note first, and the sheet growing back could move the button out from under the tap */}
+              <button onClick={submit} onMouseDown={(e) => e.preventDefault()} disabled={!totals.count || busy || !!paused}
+                className={`press flex w-full items-center justify-center gap-2.5 rounded-2xl bg-bg1 text-lg font-extrabold text-accent disabled:opacity-50 md:h-14 ${
+                  typing ? "mt-2 h-12" : "h-14"}`}>
                 {busy ? "Placing order…" : <>Place order <ArrowIcon /></>}
               </button>
             </div>

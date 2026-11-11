@@ -18,6 +18,18 @@ export function pickupLabel(order) {
   return `Coming ~${at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
 
+// When an order was placed, in the stall's time zone: "12:59 pm" today, "Mon 9 Nov · 12:59 pm"
+// on an earlier day (order numbers restart every day, so an old #3 needs its date).
+const IST = "Asia/Kolkata";
+const istDay = (d) => d.toLocaleDateString("en-CA", { timeZone: IST }); // "2026-11-09"
+export function placedLabel(order, now = Date.now()) {
+  const placed = new Date(order.created_at + "Z");
+  const time = placed.toLocaleTimeString("en-IN", { timeZone: IST, hour: "numeric", minute: "2-digit", hour12: true });
+  if (istDay(placed) === istDay(new Date(now))) return time;
+  const day = placed.toLocaleDateString("en-GB", { timeZone: IST, weekday: "short", day: "numeric", month: "short" });
+  return `${day.replace(",", "")} · ${time}`;
+}
+
 // Still "placed" this long after ordering = the stall hasn't seen it: time to suggest a call.
 // 3 minutes, or 10 minutes before the customer said they'd arrive, whichever is later.
 export const notStartedYet = (order, now) =>

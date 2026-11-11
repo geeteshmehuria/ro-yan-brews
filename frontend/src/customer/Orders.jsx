@@ -1,6 +1,6 @@
 import { LABELS, STATUSES, isActive } from "../config/constants.js";
 import { useNow } from "../hooks/useNow.js";
-import { notStartedYet, pickupLabel } from "../utils/pickup.js";
+import { notStartedYet, pickupLabel, placedLabel } from "../utils/pickup.js";
 import { FoodBackground } from "../components/ui.jsx";
 import { ask } from "../components/dialog.jsx";
 import { BackIcon, CheckIcon, ClockIcon, NoteIcon, PhoneIcon, PlusIcon, StarIcon } from "../components/icons.jsx";
@@ -56,7 +56,7 @@ function StatusPill({ status }) {
 }
 
 function OrderCard({ order, cancel, rate, phone, now }) {
-  const time = new Date(order.created_at + "Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const time = placedLabel(order, now);
   const cancelled = order.status === "cancelled";
   const uncollected = order.status === "not_collected"; // the stall closed it: it was ready but never picked up
   const active = isActive(order);
