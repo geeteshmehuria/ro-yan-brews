@@ -8,7 +8,8 @@ Render's free tier blocks outbound ports 25/465/587 — use port 2525 (Brevo sup
 import logging
 import os
 import smtplib
-from email.mime.text import MIMEText
+from email.message import EmailMessage
+from typing import Optional
 
 from fastapi import HTTPException
 
@@ -31,9 +32,15 @@ def configured() -> bool:
     return bool(SMTP_USER and SMTP_PASS)
 
 
-def send_mail(to: str, subject: str, body: str) -> None:
-    """Send one plain-text email; raises HTTPException(503) with a friendly message on failure."""
-    msg = MIMEText(body)
+def send_mail(to: str, subject: str, body: str, html: Optional[str] = None) -> None:
+    """Send one email; raises HTTPException(503) with a friendly message on failure.
+
+    `body` is the plain text. With `html` the email is multipart/alternative: clients show the
+    HTML (app/shared/email_templates.py) and fall back to the text."""
+    msg = EmailMessage()
+    msg.set_content(body)
+    if html:
+        msg.add_alternative(html, subtype="html")
     msg["Subject"] = subject
     msg["From"] = f"{SMTP_FROM_NAME} <{MAIL_FROM}>"
     msg["To"] = to

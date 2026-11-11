@@ -28,6 +28,22 @@ def test_deliver_sends_mail_over_smtp(monkeypatch):
     assert to == ["dest@x.com"] and "567890" in body
 
 
+def test_login_code_email_has_html_with_a_plain_text_fallback(monkeypatch):
+    import email
+    import smtplib
+    monkeypatch.setattr(mailer, "SMTP_USER", "stall@gmail.com")
+    monkeypatch.setattr(mailer, "SMTP_PASS", "app-password")
+    monkeypatch.setattr(mailer, "SMTP_PORT", 465)
+    monkeypatch.setattr(smtplib, "SMTP_SSL", _FakeSMTP)
+    _FakeSMTP.sent = []
+    otp_service.deliver("dest@x.com", "567890")
+    msg = email.message_from_string(_FakeSMTP.sent[0][2])
+    assert msg.get_content_type() == "multipart/alternative"
+    parts = {p.get_content_type(): p.get_payload(decode=True).decode() for p in msg.get_payload()}
+    assert "567890" in parts["text/plain"]
+    assert "567890" in parts["text/html"] and "expires in <b" in parts["text/html"]
+
+
 def test_smtp_auth_failure_gives_friendly_503(monkeypatch):
     import smtplib
 

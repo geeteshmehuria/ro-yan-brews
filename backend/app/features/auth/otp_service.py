@@ -11,7 +11,7 @@ from datetime import timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.shared import mailer
+from app.shared import email_templates, mailer
 from app.shared.auth import IS_PROD
 from app.shared.clock import utcnow
 from app.shared.models import OtpCode
@@ -39,6 +39,7 @@ def deliver(email: str, code: str) -> None:
         f"Your Mr. Momo login code is: {code}\n\n"
         f"It expires in {OTP_TTL_MINUTES} minutes. "
         "If you didn't request this, ignore this email.",
+        html=email_templates.otp_email(code, OTP_TTL_MINUTES),
     )
 
 
