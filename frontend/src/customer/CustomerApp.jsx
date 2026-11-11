@@ -125,6 +125,12 @@ export default function CustomerApp() {
     api("/api/me").then(setMe).catch(onAuthError);
   }, [loggedIn, loadStore, loadMenu, loadOrders, onAuthError]);
 
+  // Logged out (signed out, or the session expired while away): this phone gets no one's
+  // notifications — not the owner's or a customer's who used it before.
+  useEffect(() => {
+    if (!loggedIn) disablePush();
+  }, [loggedIn]);
+
   // Android app: this customer's order updates as notifications, even with the app closed.
   // Tapping one opens My orders (and the rating sheet for "Thanks — how was it?").
   useEffect(() => {

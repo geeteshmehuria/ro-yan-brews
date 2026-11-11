@@ -4,7 +4,7 @@
 // doesn't carry it.
 import { Capacitor } from "@capacitor/core";
 
-import { api } from "./api.js";
+import { api, getToken } from "./api.js";
 import { PUSH_KEY } from "../config/constants.js";
 
 // Must match CHANNEL_ID / CUSTOMER_CHANNEL_ID in backend/app/features/notifications/push_service.py. Importance 5 = heads-up + sound.
@@ -44,11 +44,24 @@ export async function enablePush(onTap) {
   }
 }
 
-// Call before logout (it sends the session token): this phone stops getting notifications.
+// Call before logout (it sends the session token), and whenever the app is logged out: this
+// phone stops getting notifications. Telling the server alone isn't enough — the request fails
+// while the backend sleeps, and an expired session (the owner's lasts 7 days) never sends it —
+// so the phone's FCM token is also deleted on the device: the server's next push to it then
+// fails as unregistered and push_service drops the row. Safe to call twice.
 // Callers needn't await it — the request is on its way once this returns.
 export async function disablePush() {
+  if (!Capacitor.isNativePlatform()) return;
   const token = localStorage.getItem(PUSH_KEY);
-  if (!token) return;
   localStorage.removeItem(PUSH_KEY);
-  await api("/api/push-token/remove", { method: "POST", body: { token } }).catch(() => {});
+  const told = token && getToken()
+    ? api("/api/push-token/remove", { method: "POST", body: { token } }).catch(() => {})
+    : null;
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    await PushNotifications.unregister(); // the next login's register() gets a fresh token
+  } catch (e) {
+    console.warn("push unregister failed", e);
+  }
+  await told;
 }
