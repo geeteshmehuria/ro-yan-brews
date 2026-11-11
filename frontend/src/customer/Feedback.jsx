@@ -2,18 +2,25 @@ import { useEffect, useState } from "react";
 
 import { api } from "../services/api.js";
 import { useBackButton } from "../hooks/backButton.js";
-import { BigButton } from "../components/ui.jsx";
+import { VegMark } from "../components/ui.jsx";
+import { StarIcon } from "../components/icons.jsx";
+
+// A word for the stars picked, so a tap gets an instant reaction.
+const WORDS = ["", "Not good", "Could be better", "Okay", "Good", "Loved it!"];
 
 function Stars({ value, onChange, label }) {
   return (
-    <div role="radiogroup" aria-label={`Stars for ${label}`} className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} star${n > 1 ? "s" : ""}`}
-          onClick={() => onChange(n)}
-          className={`press h-11 w-11 text-3xl leading-none ${n <= value ? "text-star" : "text-muted opacity-40"}`}>
-          ★
-        </button>
-      ))}
+    <div className="mt-2 flex items-center gap-3">
+      <div role="radiogroup" aria-label={`Stars for ${label}`} className="flex">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} star${n > 1 ? "s" : ""}`}
+            onClick={() => onChange(n)}
+            className={`press h-11 w-11 text-[34px] leading-none transition-transform ${n <= value ? "scale-110 text-star" : "text-muted opacity-30"}`}>
+            ★
+          </button>
+        ))}
+      </div>
+      {value > 0 && <span className="text-sm font-bold text-star">{WORDS[value]}</span>}
     </div>
   );
 }
@@ -56,42 +63,46 @@ export default function FeedbackSheet({ order, prompt = false, onDone, onClose }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 font-body md:items-center" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Rate your food" onClick={(e) => e.stopPropagation()}
-        className="screen-in max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-glass border border-[var(--stroke)] p-5 pb-[calc(var(--sab)+1.25rem)] md:rounded-glass"
-        style={{ background: "var(--bg2)" }}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-black">{prompt ? "How was your food?" : "Rate your food"}</h2>
-            <p className="text-sm text-muted">Order #{order.order_number} · tap the stars</p>
+        className="screen-in max-h-[90vh] w-full max-w-[520px] overflow-y-auto rounded-t-[28px] border border-[var(--stroke)] bg-bg2 p-5 pb-[calc(var(--sab)+1.25rem)] shadow-dialog md:rounded-[28px] md:p-6">
+        <div className="flex items-start gap-3">
+          <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-[var(--accent-ring)] text-star">
+            <StarIcon className="h-6 w-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-2xl font-extrabold leading-tight">{prompt ? "How was your food?" : "Rate your food"}</h2>
+            <p className="text-sm text-muted">Order <b className="text-accent">#{order.order_number}</b> · tap the stars</p>
           </div>
           <button onClick={onClose} aria-label="Close"
-            className="press glass-strong h-11 w-11 flex-none rounded-full text-lg font-black">✕</button>
+            className="press flex h-11 w-11 flex-none items-center justify-center rounded-full bg-[var(--glass-strong)] text-lg font-black">✕</button>
         </div>
 
         {products.map(([id, name]) => (
-          <div key={id} className="glass mt-3 p-4">
-            <b className="text-lg">{name}</b>
+          <div key={id} className={`mt-3 rounded-[20px] border p-4 transition-colors ${
+            stars[id] ? "border-[var(--accent-glow)] bg-[var(--accent-ring)]" : "border-[var(--stroke)] bg-[var(--glass)]"}`}>
+            <div className="flex items-center gap-2"><VegMark /><b className="text-lg">{name}</b></div>
             <Stars value={stars[id] || 0} label={name} onChange={(n) => setStars((s) => ({ ...s, [id]: n }))} />
             {stars[id] && (
               <textarea value={comments[id] || ""} maxLength={300} rows={2}
                 onChange={(e) => setComments((c) => ({ ...c, [id]: e.target.value }))}
-                placeholder="Tell us more (optional)"
-                className="glass-strong mt-2 w-full p-3 text-ink placeholder:text-muted focus:border-accent focus:outline-none" />
+                placeholder="Tell us more (optional)" aria-label={`Comment on ${name}`}
+                className="mt-2 w-full resize-none rounded-xl border border-[var(--stroke)] bg-[var(--card)] p-3 text-ink placeholder:text-muted focus:border-accent focus:outline-none" />
             )}
           </div>
         ))}
 
-        <label className="mt-4 flex cursor-pointer items-start gap-3 px-1">
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl px-1">
           <input type="checkbox" checked={allowPublic} onChange={(e) => setAllowPublic(e.target.checked)}
-            className="mt-1 h-5 w-5 flex-none accent-[var(--accent)]" />
+            className="mt-0.5 h-5 w-5 flex-none accent-[var(--accent)]" />
           <span className="text-sm">OK to show my name and review on the Mr. Momo website</span>
         </label>
 
-        {err && <p className="mt-2 text-center text-sm text-danger">{err}</p>}
-        <BigButton onClick={send} disabled={!rated.length || busy}>
+        {err && <p role="alert" className="mt-3 text-center text-sm text-danger">{err}</p>}
+        <button onClick={send} disabled={!rated.length || busy}
+          className="press mt-4 h-14 w-full rounded-2xl bg-accent text-[17px] font-extrabold text-bg1 shadow-[0_10px_28px_var(--accent-glow)] disabled:opacity-50">
           {busy ? "Sending…" : rated.length ? "Send feedback" : "Tap the stars to rate"}
-        </BigButton>
+        </button>
       </div>
     </div>
   );

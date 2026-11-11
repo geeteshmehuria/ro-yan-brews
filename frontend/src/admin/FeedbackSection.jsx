@@ -28,7 +28,7 @@ export default function FeedbackSection({ alwaysOpen = false }) {
   return (
     <>
       {alwaysOpen ? (
-        <h2 className="mb-2.5 mt-5 px-1 font-black text-accent">Customer feedback{data ? ` (${data.recent.length})` : ""}</h2>
+        <h2 className="mb-2.5 mt-5 px-1 font-display text-xl font-extrabold">Customer feedback{data ? <span className="text-muted"> ({data.recent.length})</span> : ""}</h2>
       ) : (
         <button onClick={toggle}
           className="press glass-strong mt-6 w-full rounded-xl px-4 py-3 text-left font-black text-accent">
@@ -43,14 +43,16 @@ export default function FeedbackSection({ alwaysOpen = false }) {
             <p className="glass p-5 text-center text-muted">No feedback yet — customers can rate an order once they've collected it</p>
           )}
           {data && data.items.length > 0 && (
-            <div className="glass mb-3 p-4">
+            <div className="mb-4 rounded-[20px] border border-[var(--stroke)] bg-[var(--card)] p-4">
               <div className="mb-1 text-xs font-black uppercase tracking-wider text-muted">Average per item</div>
+              <div className="md:grid md:grid-cols-2 md:gap-x-8">
               {data.items.map((i) => (
-                <div key={i.menu_item_id} className="flex justify-between border-b border-[var(--stroke)] py-2 last:border-0">
+                <div key={i.menu_item_id} className="flex justify-between gap-3 border-b border-[var(--stroke)] py-2.5">
                   <b>{i.name}</b>
-                  <span><b className="text-star">★ {i.average}</b> <small className="text-muted">({i.count})</small></span>
+                  <span className="whitespace-nowrap"><b className="font-display text-lg text-star">★ {i.average}</b> <small className="text-muted">({i.count})</small></span>
                 </div>
               ))}
+              </div>
             </div>
           )}
           {data && data.recent.length > 0 && (
@@ -67,19 +69,22 @@ export default function FeedbackSection({ alwaysOpen = false }) {
           {data && lowOnly && data.recent.every((f) => f.rating > 2) && (
             <p className="glass p-5 text-center text-muted">No low ratings 🎉</p>
           )}
+          <div className="md:grid md:grid-cols-2 md:items-start md:gap-3">
           {data && data.recent.filter((f) => !lowOnly || f.rating <= 2).map((f) => (
-            <div key={f.id} className="glass mb-2.5 p-4">
+            <div key={f.id} className={`mb-2.5 rounded-[18px] border bg-[var(--card)] p-4 md:mb-0 ${
+              f.rating <= 2 ? "border-danger-soft !border-l-4 !border-l-danger" : "border-[var(--stroke)]"}`}>
               <div className="flex items-baseline justify-between gap-3">
                 <b>{f.item}</b>
-                <span className="whitespace-nowrap text-star" aria-label={`${f.rating} of 5 stars`}>{stars(f.rating)}</span>
+                <span className="whitespace-nowrap text-lg text-star" aria-label={`${f.rating} of 5 stars`}>{stars(f.rating)}</span>
               </div>
-              {f.comment && <p className="mt-1">“{f.comment}”</p>}
+              {f.comment && <p className="mt-1.5 rounded-lg bg-[var(--glass)] px-3 py-2 italic">“{f.comment}”</p>}
               <div className="mt-1 text-xs text-muted">
                 {f.name || f.email} · {new Date(f.created_at + "Z").toLocaleDateString([], { day: "numeric", month: "short" })}
                 {f.allow_public ? <span className="ml-1 font-bold text-accent2">· OK to show publicly</span> : " · private"}
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
     </>

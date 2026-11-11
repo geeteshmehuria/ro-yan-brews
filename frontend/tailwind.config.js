@@ -18,6 +18,10 @@ export default {
         bar: "var(--bar)",
         "bar-soft": "var(--bar-soft)",
       },
+      fontFamily: {
+        display: ['"Baloo 2"', "system-ui", "sans-serif"], // headings (rounded, poster-like)
+        body: ['"DM Sans"', "system-ui", "sans-serif"],
+      },
       boxShadow: { float: "var(--shadow-float)", dialog: "var(--shadow-dialog)" },
       borderRadius: { glass: "var(--radius)" },
     },

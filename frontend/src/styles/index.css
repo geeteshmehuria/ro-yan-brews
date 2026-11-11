@@ -26,6 +26,17 @@
   --accent-ring: rgba(255, 201, 60, 0.12);  /* the pulse ring at its widest */
   --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.45); /* bars pinned to the bottom */
   --shadow-dialog: 0 20px 60px rgba(0, 0, 0, 0.5);
+  --card: rgba(36, 25, 18, 0.92);           /* solid-ish card (login ticket) over the food pattern */
+  --accent2-soft: rgba(74, 222, 128, 0.2);  /* ring around the green "open" dot */
+  --accent2-tint: rgba(74, 222, 128, 0.1);  /* green-tinted strip (order in progress) */
+  --line-on-light: rgba(23, 17, 13, 0.2);   /* dashed tear line on the cream bill */
+  /* steamer basket drawing (SteamerArt) */
+  --wood: #8a5a2b;
+  --wood-dark: #6b4423;
+  --wood-light: #a8743d;
+  --wood-inside: #3b2614;
+  --dough: #fff2dc;
+  --dough-line: #e3c79a;
   --radius: 18px;
   --blur: 18px;
   /* Edge-to-edge: the page runs under the status bar and the navigation bar (viewport-fit=cover),
@@ -47,6 +58,10 @@ body {
   overflow-x: hidden;
 }
 #root { max-width: 520px; margin: 0 auto; min-height: 100vh; padding-top: var(--sat); padding-bottom: var(--sab); }
+/* Tablets and desktops get a wider page; the menu and order queue switch to a grid (md: classes). */
+@media (min-width: 768px) { #root { max-width: 1040px; padding-left: 1rem; padding-right: 1rem; } }
+/* The owner's dashboard (sidebar + three order columns) gets more room on big screens. */
+@media (min-width: 1024px) { #root:has(.admin-wide) { max-width: 1320px; } }
 
 /* Frosted strip behind the status bar, so its icons stay readable over scrolled content. */
 body::before {
@@ -70,6 +85,12 @@ body::before {
   -webkit-backdrop-filter: blur(var(--blur));
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
+}
+
+/* ============ food doodle background (public/food-doodles.svg) ============ */
+.food-bg {
+  background-image: radial-gradient(600px 420px at 85% 10%, var(--accent-ring), transparent 70%), url(/food-doodles.svg);
+  background-size: auto, 420px 420px;
 }
 
 /* ============ background orbs ============ */

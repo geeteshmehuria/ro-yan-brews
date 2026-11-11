@@ -10,11 +10,15 @@ const dayLabel = (iso, many) => {
 };
 const hourLabel = (h) => `${h % 12 || 12}${h < 12 ? "am" : "pm"}`;
 
-function Stat({ value, label, tone = "text-accent" }) {
+const CARD = "rounded-[20px] border border-[var(--stroke)] bg-[var(--card)]";
+const HEAD = "font-display text-xl font-extrabold";
+
+function Stat({ value, label, tone = "text-accent", green = false }) {
   return (
-    <div className="glass p-3 text-center">
-      <b className={`block text-xl ${tone}`}>{value}</b>
-      <small className="text-xs text-muted">{label}</small>
+    <div className={`rounded-2xl border p-3 text-center md:p-4 md:text-left ${
+      green ? "border-[var(--accent2-soft)] bg-[var(--accent2-tint)]" : "border-[var(--stroke)] bg-[var(--glass)]"}`}>
+      <b className={`block font-display text-[22px] leading-tight md:text-3xl ${tone}`}>{value}</b>
+      <small className="text-xs text-muted md:text-[13px]">{label}</small>
     </div>
   );
 }
@@ -72,21 +76,21 @@ export default function TodaySection() {
 
   return (
     <>
-      <h2 className="mb-2.5 mt-5 px-1 font-black text-accent">Today</h2>
-      <div className="grid grid-cols-3 gap-2.5">
-        <Stat value={rupees(t.cash)} label="Cash collected" tone="text-accent2" />
+      <h2 className={`mb-2.5 mt-5 px-1 ${HEAD}`}>Today</h2>
+      <div className="grid grid-cols-3 gap-2.5 md:gap-3">
+        <Stat value={rupees(t.cash)} label="Cash collected" tone="text-accent2" green />
         <Stat value={t.completed} label="Orders done" />
         <Stat value={t.completed ? rupees(t.average) : "—"} label="Average order" />
       </div>
-      <div className="glass mt-2.5 grid grid-cols-4 divide-x divide-[var(--stroke)] py-2.5 text-center text-sm">
-        <div><b className="block">{t.orders}</b><small className="text-muted">Placed</small></div>
-        <div><b className="block">{t.in_progress}</b><small className="text-muted">In progress</small></div>
-        <div><b className={`block ${t.cancelled ? "text-danger" : ""}`}>{t.cancelled}</b><small className="text-muted">Cancelled</small></div>
-        <div><b className={`block ${t.not_collected ? "text-warn" : ""}`}>{t.not_collected}</b><small className="text-muted">Not collected</small></div>
+      <div className={`${CARD} mt-2.5 grid grid-cols-4 divide-x divide-[var(--stroke)] py-3 text-center text-sm`}>
+        <div><b className="block font-display text-lg">{t.orders}</b><small className="text-muted">Placed</small></div>
+        <div><b className="block font-display text-lg">{t.in_progress}</b><small className="text-muted">In progress</small></div>
+        <div><b className={`block font-display text-lg ${t.cancelled ? "text-danger" : ""}`}>{t.cancelled}</b><small className="text-muted">Cancelled</small></div>
+        <div><b className={`block font-display text-lg ${t.not_collected ? "text-warn" : ""}`}>{t.not_collected}</b><small className="text-muted">Not collected</small></div>
       </div>
 
-      <div className="mb-2.5 mt-6 flex items-center justify-between px-1">
-        <h2 className="font-black text-accent">Last {data.days} days</h2>
+      <div className="mb-2.5 mt-7 flex items-center justify-between px-1">
+        <h2 className={HEAD}>Last {data.days} days</h2>
         <div className="flex gap-1.5" role="tablist" aria-label="Report period">
           {RANGES.map((r) => (
             <button key={r} role="tab" aria-selected={days === r} onClick={() => setDays(r)}
@@ -97,20 +101,22 @@ export default function TodaySection() {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2.5">
-        <Stat value={rupees(p.cash)} label="Cash" tone="text-accent2" />
+      <div className="grid grid-cols-3 gap-2.5 md:gap-3">
+        <Stat value={rupees(p.cash)} label="Cash" tone="text-accent2" green />
         <Stat value={p.orders} label="Orders" />
         <Stat value={p.completed ? rupees(p.average) : "—"} label="Average order" />
       </div>
 
-      <div className="glass mt-2.5 p-4">
+      {/* wide screens: cash per day across the top, best sellers and busiest hours side by side */}
+      <div className="mt-2.5 flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-3">
+      <div className={`${CARD} p-4 lg:col-span-2`}>
         <div className="mb-3 text-xs font-black uppercase tracking-wider text-muted">Cash per day</div>
         <Bars values={data.daily.map((d) => d.cash)} labels={data.daily.map((d) => dayLabel(d.date, many))}
           format={rupees} highlightLast />
         {p.cash === 0 && <p className="mt-2 text-center text-sm text-muted">No orders marked Done yet in these days</p>}
       </div>
 
-      <div className="glass mt-2.5 p-4">
+      <div className={`${CARD} p-4`}>
         <div className="mb-1 text-xs font-black uppercase tracking-wider text-muted">Best sellers (orders done)</div>
         {data.top_items.length === 0 && <p className="py-2 text-sm text-muted">Nothing sold yet in these days</p>}
         {data.top_items.map((i, n) => (
@@ -126,7 +132,7 @@ export default function TodaySection() {
         ))}
       </div>
 
-      <div className="glass mt-2.5 p-4">
+      <div className={`${CARD} p-4`}>
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <span className="text-xs font-black uppercase tracking-wider text-muted">Busiest hours</span>
           {peak[1] > 0 && <span className="text-xs text-muted">peak {hourLabel(peak[0])}–{hourLabel((peak[0] + 1) % 24)}</span>}
@@ -134,6 +140,7 @@ export default function TodaySection() {
         {hourRange.length > 0
           ? <Bars values={hourRange} labels={hourRange.map((_, i) => hourLabel(first + i))} format={(v) => `${v} ${v === 1 ? "order" : "orders"}`} />
           : <p className="text-sm text-muted">No orders yet in these days</p>}
+      </div>
       </div>
     </>
   );

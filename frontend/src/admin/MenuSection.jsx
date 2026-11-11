@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "../services/api.js";
-import { ICONS } from "../config/constants.js";
+import { CategoryIcon, PlusIcon } from "../components/icons.jsx";
 import { useSocket } from "../hooks/useSocket.js";
 import MenuItemForm from "./MenuItemForm.jsx";
 import { ask, tell } from "../components/dialog.jsx";
@@ -102,9 +102,11 @@ export default function MenuSection({ visible = true, filter = "all", setFilter 
     <>
       <div hidden={!visible}>
         <div className="mb-2.5 mt-5 flex items-center justify-between px-1">
-          <h2 className="font-black text-accent">Menu{items ? ` (${live.length})` : ""}</h2>
+          <h2 className="font-display text-xl font-extrabold">Menu items{items ? <span className="text-muted"> ({live.length})</span> : ""}</h2>
           <button onClick={() => setForm({})}
-            className="press rounded-xl bg-accent px-4 py-2.5 text-sm font-black text-bg1">+ Add item</button>
+            className="press flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-extrabold text-bg1 shadow-[0_6px_20px_var(--accent-glow)]">
+            <PlusIcon className="h-4 w-4" /> Add item
+          </button>
         </div>
         {outCount > 0 && (
           <div className="mb-1 flex gap-1.5" role="tablist" aria-label="Filter menu">
@@ -124,13 +126,24 @@ export default function MenuSection({ visible = true, filter = "all", setFilter 
 
         {listedCategories.map((c) => (
           <div key={c}>
-            <div className="mb-1.5 mt-4 px-1 text-sm font-black uppercase tracking-wider text-muted">{ICONS[c] || "🍽"} {c}</div>
+            <h3 className="mb-2.5 mt-5 flex items-center gap-2.5 px-1 font-display text-xl font-extrabold">
+              <CategoryIcon category={c} className="h-5 w-5 text-accent" />{c}
+              <span className="h-0.5 flex-1 bg-gradient-to-r from-[var(--accent-glow)] to-transparent" />
+            </h3>
+            <div className="md:grid md:grid-cols-2 md:gap-3 xl:grid-cols-3">
             {listed.filter((i) => i.category === c).map((item) => (
-              <div key={item.id} className={`glass mb-2.5 p-3.5 ${item.is_available ? "" : "opacity-70"}`}>
+              <div key={item.id} className={`mb-2.5 rounded-[18px] border bg-[var(--card)] p-3.5 md:mb-0 ${
+                item.is_available ? "border-[var(--stroke)]" : "border-warn opacity-80"}`}>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
+                  <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-[var(--accent-ring)] text-accent">
+                    <CategoryIcon category={c} className="h-6 w-6" />
+                  </span>
+                  <div className="min-w-0 flex-1">
                     <b className="break-words">{item.name}</b>
-                    <div className="text-sm text-muted">{price(item)}{item.is_available ? "" : " · out of stock"}</div>
+                    <div className="text-sm">
+                      <span className="font-display font-bold text-accent">{price(item)}</span>
+                      {!item.is_available && <span className="font-bold text-warn"> · out of stock</span>}
+                    </div>
                   </div>
                   <button onClick={() => toggleStock(item)} role="switch" aria-checked={item.is_available}
                     aria-label={`${item.name} in stock`}
@@ -147,6 +160,7 @@ export default function MenuSection({ visible = true, filter = "all", setFilter 
                 </div>
               </div>
             ))}
+            </div>
           </div>
         ))}
 
@@ -178,7 +192,7 @@ export default function MenuSection({ visible = true, filter = "all", setFilter 
       </div>
 
       {undo && (
-        <div role="status" className="fixed bottom-[calc(var(--sab)+5.5rem)] left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[488px] -translate-x-1/2 items-center justify-between gap-3 rounded-glass border border-[var(--stroke)] px-4 py-3 shadow-float"
+        <div role="status" className="fixed bottom-[calc(var(--sab)+5.5rem)] md:bottom-[calc(var(--sab)+1.5rem)] left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-[488px] -translate-x-1/2 items-center justify-between gap-3 rounded-glass border border-[var(--stroke)] px-4 py-3 shadow-float"
           style={{ background: "var(--bg2)" }}>
           <span className="text-sm"><b>{undo.name}</b> removed from the menu</span>
           <button onClick={() => restore(undo)} className="press rounded-lg bg-accent px-4 py-2 text-sm font-black text-bg1">Undo</button>
