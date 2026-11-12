@@ -59,7 +59,7 @@ async def announce(order: Order) -> None:
 
 
 def notify_ready(order_number: int, email: str, name: Optional[str],
-                 items: list = (), total: Optional[int] = None) -> None:
+                 items: Optional[list] = None, total: Optional[int] = None) -> None:
     """Background task: email the customer that their order is ready. Never raises.
     `items` are order_payload's item dicts; they and `total` fill in the bill."""
     if not mailer.configured():
@@ -71,7 +71,7 @@ def notify_ready(order_number: int, email: str, name: Optional[str],
             f"Your Mr. Momo order #{order_number} is ready",
             f"Hi {name or 'there'},\n\nOrder #{order_number} is ready — please collect it at "
             f"the counter and {pay}.\n\n— Mr. Momo",
-            html=email_templates.order_ready_email(order_number, name, list(items), total),
+            html=email_templates.order_ready_email(order_number, name, items or [], total),
         )
     except Exception as exc:  # a failed courtesy email must never matter — just leave a trace
         request_log.record("TASK", "notify_ready", error=request_log.describe(exc))

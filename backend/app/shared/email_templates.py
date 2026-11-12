@@ -97,9 +97,10 @@ def order_ready_email(order_number: int, name: Optional[str], items: list, total
         + (f""" <span style="color:{FAINT};">({SIZES[i['size']]})</span>""" if i["size"] in SIZES else "")
         + f"""</td><td class="mm-line" align="right" style="padding:12px 16px;font-size:15px;font-weight:700;white-space:nowrap;border-bottom:1px solid #efe4d3;">&#8377;{i['price'] * i['qty']}</td></tr>"""
         for i in items)
-    bill = "" if total is None else f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;border:1px solid #efe4d3;border-radius:14px;border-collapse:separate;overflow:hidden;text-align:left;">
-{rows}<tr><td bgcolor="#fff7e0" style="background:#fff7e0;padding:14px 16px;font-size:15px;font-weight:800;">Pay at the counter</td>
-<td bgcolor="#fff7e0" align="right" style="background:#fff7e0;padding:14px 16px;font-size:26px;font-weight:800;color:{CHARCOAL};white-space:nowrap;">&#8377;{total}</td></tr>
+    pay_row = "" if total is None else f"""<tr><td bgcolor="#fff7e0" style="background:#fff7e0;padding:14px 16px;font-size:15px;font-weight:800;">Pay at the counter</td>
+<td bgcolor="#fff7e0" align="right" style="background:#fff7e0;padding:14px 16px;font-size:26px;font-weight:800;color:{CHARCOAL};white-space:nowrap;">&#8377;{total}</td></tr>"""
+    bill = "" if not (rows or pay_row) else f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;border:1px solid #efe4d3;border-radius:14px;border-collapse:separate;overflow:hidden;text-align:left;">
+{rows}{pay_row}
 </table>"""
     body = f"""<tr><td class="mm-body" align="center" style="padding:32px 32px 28px;font-family:{FONT};">
 <span style="display:inline-block;padding:6px 14px;border-radius:999px;background:#dcfce7;color:#166534;font-size:13px;font-weight:800;letter-spacing:1px;">&#10003; READY TO COLLECT</span>

@@ -65,6 +65,12 @@ def test_order_ready_email_shows_the_bill_and_escapes_names(monkeypatch):
     assert "pay ₹140 cash" in parts["text/plain"]
 
 
+def test_order_ready_email_keeps_items_without_a_total():
+    from app.shared.email_templates import order_ready_email
+    html = order_ready_email(5, None, [{"name": "Fries", "size": "full", "qty": 1, "price": 50}], None)
+    assert "Fries" in html and "(Full)" in html and "Pay at the counter" not in html and "Hi there" in html
+
+
 def test_smtp_auth_failure_gives_friendly_503(monkeypatch):
     import smtplib
 

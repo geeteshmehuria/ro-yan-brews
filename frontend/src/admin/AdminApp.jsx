@@ -147,22 +147,28 @@ export default function AdminApp() {
 
   // Only a rejected session logs the owner out. A network error or a 502 while the
   // free-tier backend wakes up just retries.
+  // Used at start and after every socket reconnect — including the one call useSocket makes when
+  // /ws/admin closes with 4401 (login expired) and stops reconnecting, so that refetch must keep
+  // retrying until it either works or gets the 401 that logs out; a dead feed must never stay up.
+  const retry = useRef();
+  const alive = useRef(true);
+  const sync = useCallback(() => load().then(() => setOffline(false)).catch((e) => {
+    if (!alive.current) return;
+    if (e.status === 401 || e.status === 403) {
+      logout();
+      navigate("/", { replace: true });
+      return;
+    }
+    setOffline(true);
+    clearTimeout(retry.current);
+    retry.current = setTimeout(sync, 5000);
+  }), [load, navigate]);
   useEffect(() => {
     if (!isAdmin) return;
-    let timer, stopped = false;
-    const attempt = () => load().then(() => setOffline(false)).catch((e) => {
-      if (stopped) return;
-      if (e.status === 401 || e.status === 403) {
-        logout();
-        navigate("/", { replace: true });
-      } else {
-        setOffline(true);
-        timer = setTimeout(attempt, 5000);
-      }
-    });
-    attempt();
-    return () => { stopped = true; clearTimeout(timer); };
-  }, [isAdmin, load, navigate]);
+    alive.current = true;
+    sync();
+    return () => { alive.current = false; clearTimeout(retry.current); };
+  }, [isAdmin, sync]);
 
   // Live alerts. After a reconnect, reload so nothing placed while offline is missed.
   useSocket(isAdmin && `/ws/admin?token=${encodeURIComponent(getToken())}`, (msg) => {
@@ -178,11 +184,7 @@ export default function AdminApp() {
       setOrders((os) => os.map((o) => (o.id === msg.order_id ? { ...o, status: msg.status, fresh: false } : o)));
     }
     refreshStats();
-  }, () => load().catch((e) => {
-    // also runs once when the socket closes with 4401 (login expired): a dead feed must log out,
-    // not leave the dashboard up with no new-order alerts
-    if (e.status === 401 || e.status === 403) { logout(); navigate("/", { replace: true }); }
-  }));
+  }, sync);
 
   if (!isAdmin) return null;
 
