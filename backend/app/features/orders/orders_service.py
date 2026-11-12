@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.shared import mailer, request_log
+from app.shared import email_templates, mailer, request_log
 from app.shared.clock import today_start
 from app.shared.models import Order, OrderItem
 from app.shared.ws_manager import manager
@@ -58,16 +58,20 @@ async def announce(order: Order) -> None:
     await manager.broadcast_admin(msg)
 
 
-def notify_ready(order_number: int, email: str, name: Optional[str]) -> None:
-    """Background task: email the customer that their order is ready. Never raises."""
+def notify_ready(order_number: int, email: str, name: Optional[str],
+                 items: list = (), total: Optional[int] = None) -> None:
+    """Background task: email the customer that their order is ready. Never raises.
+    `items` are order_payload's item dicts; they and `total` fill in the bill."""
     if not mailer.configured():
         return
+    pay = f"pay ₹{total} cash" if total is not None else "pay cash"
     try:
         mailer.send_mail(
             email,
             f"Your Mr. Momo order #{order_number} is ready",
             f"Hi {name or 'there'},\n\nOrder #{order_number} is ready — please collect it at "
-            "the counter and pay cash.\n\n— Mr. Momo",
+            f"the counter and {pay}.\n\n— Mr. Momo",
+            html=email_templates.order_ready_email(order_number, name, list(items), total),
         )
     except Exception as exc:  # a failed courtesy email must never matter — just leave a trace
         request_log.record("TASK", "notify_ready", error=request_log.describe(exc))

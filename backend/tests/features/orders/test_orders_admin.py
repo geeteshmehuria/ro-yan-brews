@@ -117,13 +117,15 @@ def test_ready_email_is_sent_once_with_name(client, login, make_item, smtp_on):
     client.patch("/api/me", json={"name": "Sam"}, headers=bearer(token))
     oid = place(client, token, make_item()).json()["id"]
     outbox = []
-    smtp_on(lambda to, subject, body: outbox.append((to, subject, body)))
+    smtp_on(lambda to, subject, body, html=None: outbox.append((to, subject, body, html)))
     set_status(client, owner, oid, "preparing")
     assert outbox == []  # only "ready" sends mail
     set_status(client, owner, oid, "ready")
     assert len(outbox) == 1
-    to, subject, body = outbox[0]
+    to, subject, body, html = outbox[0]
+    total = client.get("/api/orders/mine", headers=bearer(token)).json()[0]["total"]
     assert to == "buyer@x.com" and "#1" in subject and "Hi Sam" in body
+    assert f"pay ₹{total} cash" in body and f"&#8377;{total}" in html and "Hi Sam" in html
 
 
 def test_failed_ready_email_does_not_break_the_status_change(client, login, make_item, smtp_on):

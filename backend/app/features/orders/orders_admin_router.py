@@ -51,5 +51,6 @@ async def set_status(order_id: int, body: StatusIn, request: Request, background
     background.add_task(push_service.notify_customer, order.customer_id, order.id, order.order_number,
                         order.total, order.status)
     if order.status == "ready":
-        background.add_task(notify_ready, order.order_number, order.customer.email, order.customer.name)
+        background.add_task(notify_ready, order.order_number, order.customer.email, order.customer.name,
+                            order_payload(order)["items"], order.total)
     return {"id": order.id, "status": order.status}

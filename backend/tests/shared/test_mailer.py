@@ -44,6 +44,27 @@ def test_login_code_email_has_html_with_a_plain_text_fallback(monkeypatch):
     assert "567890" in parts["text/html"] and "expires in <b" in parts["text/html"]
 
 
+def test_order_ready_email_shows_the_bill_and_escapes_names(monkeypatch):
+    import email
+    import smtplib
+
+    from app.features.orders import orders_service
+    monkeypatch.setattr(mailer, "SMTP_USER", "stall@gmail.com")
+    monkeypatch.setattr(mailer, "SMTP_PASS", "app-password")
+    monkeypatch.setattr(mailer, "SMTP_PORT", 465)
+    monkeypatch.setattr(smtplib, "SMTP_SSL", _FakeSMTP)
+    _FakeSMTP.sent = []
+    items = [{"name": "Steam Veg Momos", "size": "half", "qty": 2, "price": 30},
+             {"name": "Oreo <Shake>", "size": "na", "qty": 1, "price": 80}]
+    orders_service.notify_ready(12, "dest@x.com", "<b>Asha</b>", items, 140)
+    msg = email.message_from_string(_FakeSMTP.sent[0][2])
+    parts = {p.get_content_type(): p.get_payload(decode=True).decode() for p in msg.get_payload()}
+    html = parts["text/html"]
+    assert "#12" in html and "&#8377;60" in html and "&#8377;140" in html and "(Half)" in html
+    assert "Oreo &lt;Shake&gt;" in html and "&lt;b&gt;Asha" in html and "<b>Asha" not in html
+    assert "pay ₹140 cash" in parts["text/plain"]
+
+
 def test_smtp_auth_failure_gives_friendly_503(monkeypatch):
     import smtplib
 

@@ -7,6 +7,7 @@ public website, so it shows only when the client loads images; the alt text cove
 """
 import os
 from html import escape
+from typing import Optional
 
 # The website's public copy of frontend/public/logo.png.
 LOGO_URL = os.getenv("MAIL_LOGO_URL", "https://ro-yan-brews.vercel.app/logo.png")
@@ -36,6 +37,8 @@ def _layout(preheader: str, body: str) -> str:
   .mm-h1 {{ font-size: 22px !important; }}
   .mm-ticket {{ padding: 14px 18px 12px !important; }}
   .mm-code {{ font-size: 32px !important; letter-spacing: 6px !important; }}
+  .mm-num {{ font-size: 44px !important; }}
+  .mm-line {{ padding: 10px 12px !important; font-size: 14px !important; }}
   .mm-foot {{ padding: 16px 18px !important; }}
 }}
 </style>
@@ -80,3 +83,38 @@ def otp_email(code: str, minutes: int) -> str:
 <p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:{FAINT};">Didn't ask for this? You can safely ignore this email &mdash; no one can log in without the code.<br>Never share this code. Mr. Momo will never ask you for it.</p>
 </td></tr>"""
     return _layout(f"Your code is {code}. It expires in {minutes} minutes.", body)
+
+
+SIZES = {"half": "Half", "full": "Full"}
+
+
+def order_ready_email(order_number: int, name: Optional[str], items: list, total: Optional[int]) -> str:
+    """"Your order is ready": the order number big (it's what they show at the counter), what's
+    in it at the prices saved on the order, and the cash to pay. `items` are order_payload's
+    item dicts (name, size, qty, price); with no items/total those parts are left out."""
+    rows = "".join(
+        f"""<tr><td class="mm-line" style="padding:12px 16px;font-size:15px;border-bottom:1px solid #efe4d3;">{i['qty']} &times; {escape(i['name'])}"""
+        + (f""" <span style="color:{FAINT};">({SIZES[i['size']]})</span>""" if i["size"] in SIZES else "")
+        + f"""</td><td class="mm-line" align="right" style="padding:12px 16px;font-size:15px;font-weight:700;white-space:nowrap;border-bottom:1px solid #efe4d3;">&#8377;{i['price'] * i['qty']}</td></tr>"""
+        for i in items)
+    bill = "" if total is None else f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:26px 0 0;border:1px solid #efe4d3;border-radius:14px;border-collapse:separate;overflow:hidden;text-align:left;">
+{rows}<tr><td bgcolor="#fff7e0" style="background:#fff7e0;padding:14px 16px;font-size:15px;font-weight:800;">Pay at the counter</td>
+<td bgcolor="#fff7e0" align="right" style="background:#fff7e0;padding:14px 16px;font-size:26px;font-weight:800;color:{CHARCOAL};white-space:nowrap;">&#8377;{total}</td></tr>
+</table>"""
+    body = f"""<tr><td class="mm-body" align="center" style="padding:32px 32px 28px;font-family:{FONT};">
+<span style="display:inline-block;padding:6px 14px;border-radius:999px;background:#dcfce7;color:#166534;font-size:13px;font-weight:800;letter-spacing:1px;">&#10003; READY TO COLLECT</span>
+<h1 class="mm-h1" style="margin:14px 0 0;font-size:28px;line-height:1.2;font-weight:800;color:{INK};">Your order is ready!</h1>
+<p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:{MUTED};">Hi {escape(name or "there")}, it's hot and waiting at the counter.<br>Show this number when you collect it.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px auto 0;">
+<tr><td class="mm-ticket" align="center" bgcolor="#f0fdf4" style="background:#f0fdf4;border:2px dashed {GREEN};border-radius:16px;padding:16px 56px 14px;">
+<div style="font-size:12px;font-weight:700;letter-spacing:2px;color:#3f7a52;">YOUR ORDER</div>
+<div class="mm-num" style="margin-top:2px;font-size:56px;line-height:1.1;font-weight:800;color:{CHARCOAL};">#{order_number}</div>
+</td></tr>
+</table>
+{bill}
+<p style="margin:16px 0 0;font-size:14px;color:{MUTED};"><b style="color:{INK};">Cash only</b> &mdash; no online payment needed.</p>
+<div style="margin:24px 0 0;height:1px;line-height:1px;font-size:1px;background:#efe4d3;">&nbsp;</div>
+<p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:{FAINT};">Enjoy your food! After you collect it, you can rate it in My orders.</p>
+</td></tr>"""
+    pay = f"pay ₹{total} cash" if total is not None else "pay cash"
+    return _layout(f"Collect it at the counter and {pay}.", body)
