@@ -178,7 +178,11 @@ export default function AdminApp() {
       setOrders((os) => os.map((o) => (o.id === msg.order_id ? { ...o, status: msg.status, fresh: false } : o)));
     }
     refreshStats();
-  }, () => load().catch(() => {}));
+  }, () => load().catch((e) => {
+    // also runs once when the socket closes with 4401 (login expired): a dead feed must log out,
+    // not leave the dashboard up with no new-order alerts
+    if (e.status === 401 || e.status === 403) { logout(); navigate("/", { replace: true }); }
+  }));
 
   if (!isAdmin) return null;
 
