@@ -46,10 +46,13 @@ async def set_status(order_id: int, body: StatusIn, request: Request, background
     order.status = body.status
     if order.status == "completed":
         order.completed_at = utcnow()
+    # read the bill now: commit expires the eager-loaded items, and reloading them is a query per item
+    items = order_payload(order)["items"] if order.status == "ready" else None
     db.commit()
     await announce(order)
     background.add_task(push_service.notify_customer, order.customer_id, order.id, order.order_number,
                         order.total, order.status)
     if order.status == "ready":
-        background.add_task(notify_ready, order.order_number, order.customer.email, order.customer.name)
+        background.add_task(notify_ready, order.order_number, order.customer.email, order.customer.name,
+                            items, order.total)
     return {"id": order.id, "status": order.status}
